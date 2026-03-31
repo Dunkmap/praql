@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Progress - SQL Master</title>
+  <meta name="description" content="Track your SQL learning progress, clauses mastered, accuracy, speed, and daily challenges">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="theme.js" defer></script>
+
+</head>
+<body class="page-body">
+  
+  <!-- Navigation exactly matching image -->
+  <nav style="display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 2px solid var(--bg-grid); position: relative; background: var(--bg-primary);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <svg width="45" height="45" viewBox="0 0 60 60" style="filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.05));">
+        <path d="M10,40 Q30,50 50,40 L50,48 Q30,58 10,48 Z" fill="#b9e7fa" stroke="#2d3748" stroke-width="2.5"/>
+        <path d="M10,30 Q30,40 50,30 L50,38 Q30,48 10,38 Z" fill="#fbdcd9" stroke="#2d3748" stroke-width="2.5"/>
+        <path d="M10,20 Q30,30 50,20 L50,28 Q30,38 10,28 Z" fill="#d0f0fd" stroke="#2d3748" stroke-width="2.5"/>
+        <path d="M10,20 Q30,10 50,20 Q30,30 10,20 Z" fill="#e7f6fe" stroke="#2d3748" stroke-width="2.5"/>
+        <line x1="20" y1="35" x2="20" y2="46" stroke="#2d3748" stroke-width="2.5"/>
+        <line x1="40" y1="24" x2="40" y2="40" stroke="#2d3748" stroke-width="2.5"/>
+      </svg>
+      <span style="font-size: 1.5rem; font-weight: 600; color: #32475b; letter-spacing: -0.5px;">SQL Master</span>
+    </div>
+
+    <div style="display: flex; gap: 35px; align-items: center; margin-right: 120px;">
+      <a href="learn.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">LEARN</a>
+      <a href="practice.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">PRACTICE</a>
+      <a href="ai.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">✨ AI_SQL</a>
+      <div style="display: flex; flex-direction: column; align-items: center;">
+        <a href="progress.html" style="text-decoration: none; color: #b86a7c; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">PROGRESS</a>
+        <span style="font-size: 0.8rem; color: #b86a7c; margin-top: -4px;">^</span>
+      </div>
+      <div class="theme-toggle">
+        <div class="toggle-circle"></div>
+      </div>
+    </div>
+
+    <!-- Top Right Cloud & Logout -->
+    <div style="position: absolute; right: 40px; top: -5px; display: flex; flex-direction: column; align-items: center; padding-top:10px;">
+      <span style="font-size: 0.65rem; color: #2c3e50; font-weight: 700; text-decoration: underline; position: absolute; right: 10px; top: 10px; cursor: pointer;">Logout</span>
+      <svg width="70" height="60" viewBox="0 0 100 80">
+        <path d="M 25 45 Q 25 30 40 30 Q 45 15 65 15 Q 85 15 85 35 Q 95 35 95 50 Q 95 60 85 60 L 25 60 Q 15 60 15 50 Q 15 45 25 45 Z" fill="#f4e4e6" stroke="#2d3748" stroke-width="2"/>
+        <path d="M 35 38 Q 45 35 50 40" fill="none" stroke="#2d3748" stroke-width="2" stroke-linecap="round"/>
+        <path d="M 65 25 Q 75 25 78 30" fill="none" stroke="#2d3748" stroke-width="2" stroke-linecap="round"/>
+        <path d="M 85 25 L 87 23 L 89 25 L 87 27 Z" fill="#2d3748"/>
+        <path d="M 35 70 C 25 70 20 60 30 55 L 70 55 C 80 60 75 70 65 70 Z" fill="#d0e2ef" stroke="#2d3748" stroke-width="2"/>
+        <circle cx="35" cy="62" r="2" fill="#2d3748"/>
+        <circle cx="39" cy="62" r="2" fill="#2d3748"/>
+        <circle cx="37" cy="60" r="2" fill="#2d3748"/>
+        <circle cx="37" cy="64" r="2" fill="#2d3748"/>
+        <circle cx="63" cy="62" r="2.5" fill="#f48fb1"/>
+        <circle cx="69" cy="62" r="2.5" fill="#a0c4ff"/>
+        <path d="M 22 55 Q 18 60 22 65" fill="none" stroke="#a0c4ff" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 78 55 Q 82 60 78 65" fill="none" stroke="#a0c4ff" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </nav>
+
+  <!-- Main Content Wrapper -->
+  <div style="max-width: 1040px; margin: 0 auto; padding: 40px 20px;">
+    
+    <!-- Header Area -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 25px;">
+      <div>
+        <h1 style="color: #b86a7c; font-size: 2.6rem; font-weight: 700; margin: 0 0 5px 0; letter-spacing: -1px; text-shadow: 1px 1px 0px rgba(0,0,0,0.05);">My Progress</h1>
+        <p style="color: #2c3e50; font-size: 0.9rem; margin: 0; font-weight: 500;">Track your SQL learning journey</p>
+      </div>
+      <div>
+        <button style="background-color: #fbf5ee; border: 1.5px solid #dcd1c6; border-radius: 12px; padding: 10px 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 600; color: #2c3e50; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Reset All
+        </button>
+      </div>
+    </div>
+
+    <!-- Profile Card Exact Match -->
+    <div style="background-color: #ffffff; border-radius: 20px; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border: 1.5px solid #eae1d7; box-shadow: 0 8px 24px rgba(0,0,0,0.03); margin-bottom: 40px;">
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <!-- Avatar Image -->
+        <div id="user-avatar" style="width: 76px; height: 76px; border-radius: 50%; border: 3px solid #fbe6dd; display: flex; align-items: center; justify-content: center; background-color: #fce4ec; color: #b86a7c; font-size: 2rem; font-weight: 700; font-family: 'JetBrains Mono', monospace;">?</div>
+        <div>
+          <div id="username-display-area" style="display: flex; align-items: center; gap: 15px; margin-bottom: 6px;">
+            <h2 id="display-name" style="font-size: 1.3rem; margin: 0; color: #1a202c; font-weight: 600; letter-spacing: -0.5px;">Welcome, Learner!</h2>
+            <button id="edit-name-btn" style="background: #fbe6dd; border: 1px solid #ebcdc0; border-radius: 20px; padding: 4px 14px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 700; color: #6a4c41; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              EDIT PROFILE
+            </button>
+          </div>
+          <div id="name-input-area" style="display:none; align-items:center; gap:10px; margin-bottom: 6px;">
+            <input type="text" id="user-name-input" class="name-input" placeholder="What should we call you?" style="border-radius:12px; border:1.5px solid #ebcdc0; padding:4px 12px; font-family:'JetBrains Mono',monospace; outline:none;">
+            <button id="save-name-btn" style="background:#c0ebd0; border:1px solid #9dcdae; border-radius:20px; padding:4px 14px; color:#437653; font-weight:700; cursor:pointer;">SAVE</button>
+            <button id="cancel-name-btn" style="background:#fad1c7; border:1px solid #eaa89d; border-radius:20px; padding:4px 14px; color:#9c685f; font-weight:700; cursor:pointer;">✕</button>
+          </div>
+          <p style="font-size: 0.85rem; color: #4a5568; margin: 0;">Securely stored in your local browser vault.</p>
+        </div>
+      </div>
+      <!-- SQL MASTER PRO Detailed Badge -->
+      <div>
+        <svg width="180" height="65" viewBox="0 0 180 65" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));">
+          <!-- Outer border shape -->
+          <polygon points="10,32.5 30,10 150,10 170,32.5 150,55 30,55" fill="#eceff1" stroke="#2d3748" stroke-width="1.5"/>
+          <!-- Inner pastel shape -->
+          <polygon points="20,32.5 35,16 145,16 160,32.5 145,49 35,49" fill="#e0f2ec" stroke="#d4e8e0" stroke-width="2"/>
+          <!-- Pastel pink banner behind text -->
+          <rect x="25" y="24" width="130" height="18" fill="#fce4ec"/>
+          <text x="90" y="36.5" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" fill="#4a5568" text-anchor="middle" letter-spacing="1px">SQL MASTER PRO</text>
+          
+          <!-- Cute star details -->
+          <path d="M 28 20 l 2 -2 l 2 2 l -2 2 Z" fill="#b9def0"/>
+          <path d="M 150 45 l 2 -2 l 2 2 l -2 2 Z" fill="#fbdcd9"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- MAIN STATS GRID -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
+      <!-- Modules Card -->
+      <div style="background-color: #ffffff; border-radius: 20px; padding: 20px; border: 1.5px solid #eae1d7; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+        <div style="font-size: 0.7rem; font-weight: 800; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">MODULES MASTERED</div>
+        <div id="prog-topics" style="font-size: 2rem; font-weight: 800; color: #b86a7c;">0</div>
+      </div>
+      <!-- Tasks Card -->
+      <div style="background-color: #ffffff; border-radius: 20px; padding: 20px; border: 1.5px solid #eae1d7; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+        <div style="font-size: 0.7rem; font-weight: 800; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">TASKS SOLVED</div>
+        <div id="prog-questions" style="font-size: 2rem; font-weight: 800; color: #8bbca0;">0</div>
+      </div>
+      <!-- Accuracy Card -->
+      <div style="background-color: #ffffff; border-radius: 20px; padding: 20px; border: 1.5px solid #eae1d7; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+        <div style="font-size: 0.7rem; font-weight: 800; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">LOGIC ACCURACY</div>
+        <div id="prog-accuracy" style="font-size: 2rem; font-weight: 800; color: #b794f4;">0%</div>
+      </div>
+      <!-- Speed Card -->
+      <div style="background-color: #ffffff; border-radius: 20px; padding: 20px; border: 1.5px solid #eae1d7; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+        <div style="font-size: 0.7rem; font-weight: 800; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">AVERAGE SPEED</div>
+        <div id="prog-speed" style="font-size: 2rem; font-weight: 800; color: #f6ad55;">--</div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY CHART Section -->
+    <div style="background-color: #ffffff; border-radius: 20px; padding: 30px; border: 1.5px solid #eae1d7; box-shadow: 0 8px 24px rgba(0,0,0,0.02); margin-bottom: 30px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+          <h2 style="font-size: 1.1rem; font-weight: 700; color: #32475b; margin: 0; display: flex; align-items: center; gap: 10px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b86a7c" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="4" height="10" rx="1"></rect><rect x="10" y="7" width="4" height="14" rx="1"></rect><rect x="17" y="3" width="4" height="18" rx="1"></rect></svg>
+            WEEKLY PRACTICE CONSISTENCY
+          </h2>
+          <p style="font-size: 0.8rem; color: #718096; margin: 5px 0 0 0; font-weight: 500;">Questions solved per day</p>
+        </div>
+      </div>
+      <div id="activity-chart-container">
+        <!-- JS will render chart here -->
+      </div>
+    </div>
+
+    <!-- DAILY QUEST Interactive Card -->
+    <div id="daily-challenge-card" style="background-color: #fffdf5; border-radius: 20px; padding: 30px; border: 1.5px solid #f2e9d9; margin-bottom: 30px;">
+      
+      <!-- Quest Header -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#8bbca0"><path d="M12 2C12.5523 2 13 2.44772 13 3V8.1L17.4172 5.55013C17.8953 5.27409 18.5065 5.43806 18.7826 5.92015L19.5 7.16278C19.776 7.64488 19.6121 8.25608 19.13 8.53213L14.7128 11.082L19.13 13.6319L19.5 14.8745L18.7826 16.1171L17.4172 18.4539C16.9392 18.73 16.328 18.566 16.052 18.0839L13 12.8V17L13 21C13 21.5523 12.5523 22 12 22C11.4477 22 11 21.5523 11 21V12.8L7.94803 18.0839C7.67198 18.566 7.06079 18.73 6.58273 18.4539L5.21735 16.1171L4.5 14.8745L4.87002 13.6319L9.28718 11.082L4.87002 8.53213C4.39196 8.25608 4.22799 7.64488 4.50404 7.16278L5.21735 5.92015C5.4934 5.43806 6.10459 5.27409 6.58265 5.55013L11 8.1V3C11 2.44772 11.4477 2 12 2Z"/></svg>
+            <h2 style="font-size: 1.4rem; font-weight: 700; color: #8bbca0; margin: 0; letter-spacing: 0.5px;">DAILY QUEST</h2>
+            <div style="background-color: #B9E1C6; border-radius: 20px; padding: 4px 16px;">
+              <span id="streak-badge" style="font-size: 0.75rem; font-weight: 700; color: #3d7a54; letter-spacing: 0.5px;">_STREAK: 0 D ♥</span>
+            </div>
+          </div>
+          <p style="font-size: 0.95rem; color: #2d3748; margin: 10px 0 0 0;">Master 3 new queries today to level up your rank!</p>
+        </div>
+        
+        <!-- Hourglass SVG exact replica -->
+        <div id="daily-status-icon">
+          <svg width="80" height="80" viewBox="0 0 100 100">
+            <!-- Sparkles -->
+            <path d="M 15 25 L 18 15 L 21 25 L 31 28 L 21 31 L 18 41 L 15 31 L 5 28 Z" fill="#fff9d6" stroke="#2d3748" stroke-width="1.5"/>
+            <path d="M 85 45 L 87 38 L 89 45 L 96 47 L 89 49 L 87 56 L 85 49 L 78 47 Z" fill="#fff9d6" stroke="#2d3748" stroke-width="1.5"/>
+            <path d="M 80 80 L 82 75 L 84 80 L 89 82 L 84 84 L 82 89 L 80 84 L 75 82 Z" fill="#fff9d6" stroke="#2d3748" stroke-width="1.5"/>
+            <path d="M 20 85 L 22 81 L 24 85 L 28 87 L 24 89 L 22 93 L 20 89 L 16 87 Z" fill="#fff9d6" stroke="#2d3748" stroke-width="1.5"/>
+            <!-- Hourglass Frame Top/Bottom -->
+            <rect x="35" y="15" width="30" height="6" rx="3" fill="#cfe6f5" stroke="#2d3748" stroke-width="2.5"/>
+            <rect x="35" y="79" width="30" height="6" rx="3" fill="#cfe6f5" stroke="#2d3748" stroke-width="2.5"/>
+            <!-- Hourglass Glass -->
+            <path d="M 38 21 C 38 35 48 42 48 50 C 48 58 38 65 38 79 L 62 79 C 62 65 52 58 52 50 C 52 42 62 35 62 21 Z" fill="#fffbfc" stroke="#2d3748" stroke-width="2.5" fill-opacity="0.9"/>
+            <!-- Top Sand -->
+            <path d="M 40 38 C 42 45 46 47 48 50 C 50 47 54 45 56 38 Z" fill="#efa9bc"/>
+            <!-- Bottom Sand -->
+            <path d="M 42 79 C 42 68 45 61 48 61 C 51 61 54 68 54 79 Z" fill="#efa9bc"/>
+            <!-- Sand flow line -->
+            <rect x="49" y="48" width="2" height="15" fill="#efa9bc"/>
+          </svg>
+        </div>
+      </div>
+
+      <div id="daily-challenge-content">
+        <div style="padding: 24px; text-align: center; color: #b86a7c; font-weight: 700;">Loading puzzles...</div>
+      </div>
+    
+    </div>
+
+    <!-- OVERALL PROGRESS DETAILS -->
+    <div style="background-color: #ffffff; border-radius: 20px; padding: 30px; border: 1.5px solid #eae1d7; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 30px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.1rem; font-weight: 700; color: #32475b; margin: 0;">OVERALL MASTERY</h2>
+        <span id="progress-pct" style="font-size: 1.2rem; font-weight: 800; color: #b86a7c;">0%</span>
+      </div>
+      <div style="height: 12px; background: #f2e7de; border-radius: 6px; overflow: hidden; margin-bottom: 15px;">
+        <div id="progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #b86a7c, #ec4899); border-radius: 6px; transition: width 1s ease;"></div>
+      </div>
+      <p id="progress-detail" style="font-size: 0.85rem; color: #718096; margin: 0; font-weight: 500;"></p>
+    </div>
+
+    <!-- DOUBLE GRID: ACCURACY & SPEED -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+      <!-- Accuracy Card -->
+      <div style="background-color: #ffffff; border-radius: 20px; padding: 25px; border: 1.5px solid #eae1d7; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+        <h3 style="font-size: 1rem; font-weight: 700; color: #32475b; margin: 0 0 20px 0;">ACCURACY DETAILS</h3>
+        <div style="display: flex; align-items: center; gap: 30px;">
+          <div id="accuracy-big" style="font-size: 3rem; font-weight: 800; color: #8bbca0;">0%</div>
+          <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div style="font-size: 0.75rem; color: #718096;">CORRECT: <span id="acc-correct" style="color: #48bb78; font-weight: 700;">0</span></div>
+            <div style="font-size: 0.75rem; color: #718096;">WRONG: <span id="acc-wrong" style="color: #f56565; font-weight: 700;">0</span></div>
+            <div style="font-size: 0.75rem; color: #718096; grid-column: span 2;">TOTAL ATTEMPTS: <span id="acc-attempted" style="font-weight: 700;">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Speed Stats -->
+      <div style="background-color: #ffffff; border-radius: 20px; padding: 25px; border: 1.5px solid #eae1d7; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+        <h3 style="font-size: 1rem; font-weight: 700; color: #32475b; margin: 0 0 20px 0;">SPEED ANALYTICS</h3>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; margin-bottom: 6px; color: #718096;">
+              <span>AVERAGE TIME</span>
+              <span id="speed-avg-val">0s</span>
+            </div>
+            <div style="height: 6px; background: #f2e7de; border-radius: 3px;"><div id="speed-avg-bar" style="height:100%; width:0%; background:#b794f4; border-radius:3px;"></div></div>
+          </div>
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 600; margin-bottom: 6px; color: #718096;">
+              <span>FASTEST SOLVE</span>
+              <span id="speed-fast-val">0s</span>
+            </div>
+            <div style="height: 6px; background: #f2e7de; border-radius: 3px;"><div id="speed-fast-bar" style="height:100%; width:0%; background:#f6ad55; border-radius:3px;"></div></div>
+          </div>
+          <div style="display: flex; gap: 20px; margin-top: 5px;">
+            <div style="font-size: 0.75rem; color: #718096;">TOTAL PRACTICE: <span id="speed-total-val" style="font-weight: 700;">0s</span></div>
+            <div style="font-size: 0.75rem; color: #718096;">SOLVED: <span id="speed-count" style="font-weight: 700;">0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLAUSES MASTERED Section -->
+    <div style="background-color: #ffffff; border-radius: 20px; padding: 30px; border: 1.5px solid #eae1d7; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 30px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h2 style="font-size: 1.1rem; font-weight: 700; color: #32475b; margin: 0;">CLAUSES MASTERED</h2>
+        <span id="clauses-count" style="font-size: 0.85rem; font-weight: 600; color: #718096;">0 / 45 mastered</span>
+      </div>
+      <div id="clauses-grid" style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <!-- Chips added here -->
+      </div>
+    </div>
+
+    <!-- CATEGORY Progress -->
+    <div style="background-color: #ffffff; border-radius: 20px; padding: 30px; border: 1.5px solid #eae1d7; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 30px;">
+      <h2 style="font-size: 1.1rem; font-weight: 700; color: #32475b; margin: 0 0 25px 0;">CATEGORY PROFICIENCY</h2>
+      <div id="category-progress">
+        <!-- Groups here -->
+      </div>
+    </div>
+
+    <!-- COMPLETED TOPICS -->
+    <div style="background-color: #ffffff; border-radius: 20px; padding: 30px; border: 1.5px solid #eae1d7; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 40px;">
+      <h2 style="font-size: 1.1rem; font-weight: 700; color: #32475b; margin: 0 0 10px 0;">MASTERED BADGES</h2>
+      <p style="font-size: 0.85rem; color: #718096; margin: 0 0 20px 0;" id="completed-count">0 topics mastered</p>
+      <div id="completed-list">
+        <!-- Badges here -->
+      </div>
+    </div>
+
+  </div>
+
+  <script src="../sql_engine/sql-wasm.js"></script>
+  <script src="../sql_engine/engine.js"></script>
+  <script src="../lessons/lessons_data.js"></script>
+  <script src="../questions/questions_data.js"></script>
+  <script src="progress.js"></script>
+</body>
+</html>

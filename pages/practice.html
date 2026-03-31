@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Practice SQL - SQL Master</title>
+  <meta name="description" content="Practice SQL with 200+ questions across easy, medium, and hard difficulties">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="theme.js" defer></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .app-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .challenge-container {
+      background: var(--bg-secondary);
+      border: 1.5px solid var(--bg-grid);
+      border-radius: 32px;
+      padding: 50px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .challenge-container {
+      background: #ffffff;
+      border: 1.5px solid #eae1d7;
+      border-radius: 32px;
+      padding: 50px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .difficulty-tabs {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 35px;
+    }
+    .difficulty-tab {
+      background: #fdfaf7;
+      border: 1.5px solid #eae1d7;
+      border-radius: 14px;
+      padding: 12px 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: #718096;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .difficulty-tab.active {
+      background: #fbe6dd;
+      border-color: #ebcdc0;
+      color: #b86a7c;
+    }
+
+    .editor-box {
+      background: #d8edfa;
+      border-radius: 24px;
+      padding: 25px;
+      border: 1px solid #c8e0f0;
+      margin-top: 35px;
+    }
+    .editor-inner {
+      background: #fffcfa;
+      border-radius: 18px;
+      padding: 30px;
+      border: 1.5px solid #dcdbe3;
+      position: relative;
+    }
+    .editor-label {
+      font-weight: 800;
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+      color: #32475b;
+    }
+    
+    .sql-editor {
+      width: 100%;
+      height: 120px;
+      background: #373e47;
+      border-radius: 12px;
+      border: none;
+      color: white;
+      padding: 60px 20px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      resize: none;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .editor-toolbar {
+      position: absolute;
+      top: 65px;
+      left: 45px;
+      right: 45px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 5;
+    }
+    
+    .btn-kawaii {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: transform 0.1s;
+    }
+    .btn-kawaii:active {
+      transform: translateY(2px);
+    }
+    .btn-primary {
+      background: #fae0cd;
+      color: #322b2b;
+      box-shadow: 0 4px 0 #d9c0af;
+    }
+    .btn-secondary {
+      background: #f2e7de;
+      color: #a0a8ba;
+      box-shadow: 0 4px 0 #dcd1c6;
+    }
+    .btn-action {
+      background: #c0ebd0;
+      color: #437653;
+      box-shadow: 0 4px 0 #9dcdae;
+      padding: 15px 40px;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <nav style="display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 2px solid var(--bg-grid); position: relative; background: var(--bg-primary);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <svg width="45" height="45" viewBox="0 0 60 60" style="filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.05));">
+          <path d="M10,40 Q30,50 50,40 L50,48 Q30,58 10,48 Z" fill="#b9e7fa" stroke="#2d3748" stroke-width="2.5"/>
+          <path d="M10,30 Q30,40 50,30 L50,38 Q30,48 10,38 Z" fill="#fbdcd9" stroke="#2d3748" stroke-width="2.5"/>
+          <path d="M10,20 Q30,30 50,20 L50,28 Q30,38 10,28 Z" fill="#d0f0fd" stroke="#2d3748" stroke-width="2.5"/>
+          <path d="M10,20 Q30,10 50,20 Q30,30 10,20 Z" fill="#e7f6fe" stroke="#2d3748" stroke-width="2.5"/>
+          <line x1="20" y1="35" x2="20" y2="46" stroke="#2d3748" stroke-width="2.5"/>
+          <line x1="40" y1="24" x2="40" y2="40" stroke="#2d3748" stroke-width="2.5"/>
+        </svg>
+        <span style="font-size: 1.5rem; font-weight: 600; color: #32475b; letter-spacing: -0.5px;">SQL Master</span>
+      </div>
+
+      <div style="display: flex; gap: 35px; align-items: center; margin-right: 120px;">
+        <a href="learn.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">LEARN</a>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <a href="practice.html" style="text-decoration: none; color: #b86a7c; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">PRACTICE</a>
+          <span style="font-size: 0.8rem; color: #b86a7c; margin-top: -4px;">^</span>
+        </div>
+        <a href="challenges.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">🏆 CHALLENGES</a>
+        <a href="ai.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">✨ AI_SQL</a>
+        <a href="progress.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">PROGRESS</a>
+        <div class="theme-toggle">
+          <div class="toggle-circle"></div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="main-content">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px;">
+        <div>
+          <h1 style="font-size: 2.5rem; font-weight: 800; color: #b86a7c; margin: 0; letter-spacing: -1.5px;">SQL CHALLENGES</h1>
+          <p style="color: #718096; margin-top: 8px; font-weight: 700;">TEST YOUR SKILLS WITH 130+ REAL-WORLD SCENARIOS.</p>
+        </div>
+        
+        <!-- Activity Mini-Chart -->
+        <div style="background: #ffffff; border: 1.5px solid #eae1d7; border-radius: 20px; padding: 15px 20px; width: 450px; box-shadow: 0 4px 12px rgba(0,0,0,0.02);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-size: 0.75rem; font-weight: 800; color: #b86a7c; letter-spacing: 0.5px;">ACTIVITY_FEED</div>
+            <div id="practice-streak" style="font-size: 0.65rem; font-weight: 800; color: #8bbca0;">STREAK: 0 D</div>
+          </div>
+          <div id="activity-chart-container" style="height: 100px;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="difficulty-tabs">
+        <button class="difficulty-tab active" id="tab-mix" data-difficulty="mix">MASTER_MIX</button>
+        <button class="difficulty-tab" id="tab-easy" data-difficulty="easy">STAGE_01 [EASY]</button>
+        <button class="difficulty-tab" id="tab-medium" data-difficulty="medium">STAGE_02 [MEDIUM]</button>
+        <button class="difficulty-tab" id="tab-hard" data-difficulty="hard">STAGE_03 [HARD]</button>
+      </div>
+
+      <div class="challenge-container">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 30px;">
+          <div>
+            <div id="question-number" style="font-size: 1.5rem; font-weight: 800; color: #b86a7c; letter-spacing: -1px;"># CHALLENGE_01</div>
+            <div id="question-dataset" style="font-size: 0.8rem; color: #a0aacc; font-weight: 800; margin-top: 4px;">DATASET // NULL</div>
+          </div>
+          <div style="text-align: right;">
+            <div id="question-counter" style="font-weight: 800; font-size: 1.1rem; color: #32475b;">1 / 50</div>
+            <div style="font-size: 0.65rem; color: #a0aacc; font-weight: 800; text-transform: uppercase;">LEVEL_PROGRESS</div>
+          </div>
+        </div>
+
+        <h2 id="question-text" style="font-size: 1.4rem; font-weight: 700; color: #32475b; line-height: 1.5; margin-bottom: 35px;">LOADING CHALLENGE...</h2>
+
+        <div style="margin-bottom: 30px;">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <button id="toggle-preview-btn" style="background: none; border: none; color: #b86a7c; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; padding: 0;">
+              <span id="preview-arrow">▼</span> VIEW_DATA:
+            </button>
+            <div id="dataset-tabs" style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <!-- Dataset tab chips rendered by JS -->
+            </div>
+          </div>
+          <div id="table-preview" style="display: none; margin-top: 15px;"></div>
+        </div>
+
+        <div class="editor-box">
+          <div class="editor-inner">
+            <div class="editor-label">LAB // SQL_EDITOR <span id="schema-hint" style="margin-left:15px; font-size:0.7rem; color:#718096; font-weight:400;"></span></div>
+            
+            <div class="editor-toolbar">
+              <div style="color: #92a4bd; font-size: 0.85rem; font-weight: 700;">>_ SOLUTION_INPUT</div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-kawaii btn-secondary" id="hint-btn" style="width:34px; height:34px; padding:0; justify-content:center;">?</button>
+                <button class="btn-kawaii btn-primary" id="run-btn">check</button>
+              </div>
+            </div>
+            
+            <textarea class="sql-editor" id="practice-editor" spellcheck="false" placeholder=""></textarea>
+
+            <div class="hint-box" id="hint-box" style="display:none; margin-top:20px; padding:15px; border:1.5px dashed #ebcdc0; border-radius:12px; background:#fffbfc; color:#6a4c41; font-size:0.85rem; line-height:1.5;"></div>
+            <div id="practice-result" style="margin-top:20px;"></div>
+            <div id="practice-feedback" style="margin-top:15px;"></div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:center; margin-top:40px; flex-direction: column; align-items:center; gap:25px;">
+           <button class="btn-kawaii btn-action" id="check-btn">SUBMIT_ANSWER</button>
+           
+           <div style="display:flex; gap:20px; width:100%; justify-content:space-between; border-top: 1.5px dashed #f2e7de; padding-top: 30px;">
+             <button class="btn-kawaii btn-secondary" id="prev-btn" style="padding: 12px 30px;">« PREV</button>
+             <button class="btn-kawaii btn-secondary" id="next-btn" style="padding: 12px 30px;">NEXT »</button>
+           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../sql_engine/sql-wasm.js"></script>
+  <script src="../sql_engine/engine.js"></script>
+  <script src="../questions/questions_data.js"></script>
+  <script src="practice.js"></script>
+</body>
+</html>
