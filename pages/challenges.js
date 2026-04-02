@@ -211,6 +211,50 @@ function addManualQuestion() {
   showToast('Question added to queue! ✅');
 }
 
+function getTableSchema(tableName) {
+  try {
+    const result = sqlEngine.exec(`PRAGMA table_info("${tableName}")`);
+    if (result.success && result.results && result.results.length > 0) {
+      return result.results[0].values.map(row => ({
+        name: row[1],
+        type: row[2]
+      }));
+    }
+  } catch (e) {
+    console.error(`Failed to get schema for ${tableName}:`, e);
+  }
+  return null;
+}
+
+function getSchemaBlock(datasetName) {
+  if (datasetName === 'custom') return '';
+
+  const builtInTables = ['employees', 'customers', 'products', 'orders', 'sales'];
+  const tablesToShow = [datasetName];
+
+  // For JOINs, include all built-in tables
+  const topic = document.getElementById('prompt-topic').value || '';
+  const joinCheck = document.getElementById('prompt-allow-joins');
+  if (topic.toLowerCase().includes('join') && joinCheck && joinCheck.checked) {
+    builtInTables.forEach(t => {
+      if (!tablesToShow.includes(t)) tablesToShow.push(t);
+    });
+  }
+
+  let schemaText = '\n\nHere is the EXACT schema of the database. You MUST ONLY use these column names:\n';
+  tablesToShow.forEach(table => {
+    const cols = getTableSchema(table);
+    if (cols && cols.length > 0) {
+      schemaText += `\nTable: ${table}\nColumns:\n`;
+      cols.forEach(c => {
+        schemaText += `  - ${c.name} (${c.type})\n`;
+      });
+    }
+  });
+  schemaText += '\nCRITICAL: Do NOT invent or assume column names. Use ONLY the exact column names listed above. For example, if a table has "supplier" but no "brand", you must use "supplier".';
+  return schemaText;
+}
+
 function updateAiPrompt() {
   const count = document.getElementById('prompt-count').value || 5;
   const topic = document.getElementById('prompt-topic').value || 'general topics';
@@ -244,11 +288,16 @@ function updateAiPrompt() {
     exampleTable = "your_table";
     exampleQuery = allowJoins ? `SELECT * FROM ${exampleTable} JOIN another_table ...` : `SELECT * FROM ${exampleTable}`;
   }
+
+  // Get actual schema from the database
+  const schemaBlock = getSchemaBlock(dataset);
   
+  // Ask AI to also provide a downloadable dataset
+  const datasetDownloadInstr = `\n\nALSO: PROVIDE the dataset for these questions. Generate a dataset and create a downloadable CSV file using python_user_visible. Save it to /mnt/data/dataset.csv and provide ONLY the download link for the dataset in the response.\n`;
+
   const prompt = `Act as a SQL expert. Generate ${count} challenging SQL practice questions about ${topic} using ${datasetText}.
 IMPORTANT: ${datasetConstraint} All queries must be compatible with standard SQLite.
-
-ALSO: PROVIDE the dataset for these questions. Generate a dataset and create a downloadable CSV file using python_user_visible. Save it to /mnt/data/dataset.csv and provide ONLY the download link for the dataset in the response.
+${schemaBlock}${datasetDownloadInstr}
 
 Return the questions data in this EXACT format, separated by blank lines:
 
@@ -329,8 +378,25 @@ function importPlainText() {
   });
 
   if (count > 0) {
+    // Validate expected queries against the database
+    let invalidCount = 0;
+    queuedQuestions.forEach(q => {
+      const testResult = sqlEngine.exec(q.expected_query);
+      if (!testResult.success) {
+        q._invalid = true;
+        q._error = testResult.error;
+        invalidCount++;
+      } else {
+        q._invalid = false;
+      }
+    });
+
     renderQueue();
-    showToast(`Imported ${count} questions from text! 🎉`);
+    if (invalidCount > 0) {
+      showToast(`Imported ${count} questions — ⚠️ ${invalidCount} have invalid SQL! Check the queue.`, true);
+    } else {
+      showToast(`Imported ${count} questions from text! All queries validated ✅`);
+    }
   } else {
     showToast('No valid questions found. Use Q: and A: prefixes.', true);
   }
@@ -358,8 +424,11 @@ function renderQueue() {
   queuedQuestions.forEach((q, i) => {
     const item = document.createElement('div');
     item.className = 'queued-item';
+    const invalidBadge = q._invalid 
+      ? `<div style="margin-top:4px;font-size:0.7rem;color:#dc2626;font-weight:700;background:#fef2f2;border:1px solid #fecaca;padding:3px 10px;border-radius:8px;">⚠️ INVALID SQL: ${escHtml(q._error || 'Query fails to execute')}</div>`
+      : '';
     item.innerHTML = `
-      <div style="font-weight:800; font-size:0.8rem; color:#b86a7c; width:28px; flex-shrink:0;">#${i + 1}</div>
+      <div style="font-weight:800; font-size:0.8rem; color:${q._invalid ? '#dc2626' : '#b86a7c'}; width:28px; flex-shrink:0;">#${i + 1}</div>
       <div class="queued-item-info">
         <div class="queued-item-q">${escHtml(q.question)}</div>
         <div class="queued-item-meta">
@@ -367,6 +436,7 @@ function renderQueue() {
           <span>📊 ${escHtml((q.datasets || [q.dataset]).join(', '))}</span>
           ${q.topic ? `<span>🏷 ${escHtml(q.topic)}</span>` : ''}
         </div>
+        ${invalidBadge}
       </div>
       <div class="queued-item-actions">
         <button class="qi-btn delete" data-idx="${i}" title="Remove">🗑️</button>
@@ -732,13 +802,78 @@ async function submitArenaAnswer() {
 
   const expectedResult = sqlEngine.exec(q.expected_query);
   if (!expectedResult.success) {
-    feedbackDiv.innerHTML = `<div style="padding:14px 20px;background:#fef3c7;border:1.5px solid #fde68a;border-radius:14px;color:#92400e;font-weight:700;">⚠️ Expected query has an error. This question may be invalid.</div>`;
+    // Mark as solved so user isn't stuck on invalid question
+    q.solved = true;
     unlockNext(set, activeQuestionIndex);
     saveChallengeSets();
+    renderSetsList();
+
+    feedbackDiv.innerHTML = `
+      <div style="padding:14px 20px;background:#fef3c7;border:1.5px solid #fde68a;border-radius:14px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-size:1.3rem;">⚠️</span>
+          <strong style="color:#92400e;">Invalid Question — Auto-Skipped</strong>
+        </div>
+        <div style="font-size:0.82rem;color:#92400e;margin-bottom:8px;">
+          The expected SQL query for this question has an error and cannot run against the current dataset.
+        </div>
+        <div style="font-size:0.78rem;color:#718096;">
+          <strong>Expected query:</strong><br>
+          <code style="font-family:'JetBrains Mono',monospace;color:#b86a7c;font-size:0.75rem;">${escHtml(q.expected_query)}</code>
+        </div>
+        <div style="font-size:0.75rem;color:#dc2626;margin-top:6px;">
+          <strong>Error:</strong> ${escHtml(expectedResult.error || 'Unknown error')}
+        </div>
+        <div style="margin-top:10px;font-size:0.78rem;color:#15803d;font-weight:700;">
+          ✅ This question has been auto-skipped. Click NEXT » to continue.
+        </div>
+      </div>`;
     return;
   }
 
   const isCorrect = compareResults(userResult.results, expectedResult.results);
+
+  // DEBUG v3 - STAYS ON PAGE
+  const _dbgUserCols = userResult.results?.[0]?.columns || [];
+  const _dbgExpCols = expectedResult.results?.[0]?.columns || [];
+  const _dbgUserRows = userResult.results?.[0]?.values?.length || 0;
+  const _dbgExpRows = expectedResult.results?.[0]?.values?.length || 0;
+  
+  let debugHtml = `<div style="background:#fffbe6;border:2px solid #fbbf24;border-radius:12px;padding:15px;margin-bottom:12px;font-family:'JetBrains Mono',monospace;font-size:0.7rem;">
+    <strong style="color:#b45309;">🔧 VERSION: 1.1.6 (LATEST)</strong><br>
+    Cols: [U: ${_dbgUserCols.join(',')}] vs [E: ${_dbgExpCols.join(',')}]<br>
+    Rows: [U: ${_dbgUserRows}] vs [E: ${_dbgExpRows}]<br>
+    <strong style="color:${isCorrect ? '#059669' : '#dc2626'}">Final Check: ${isCorrect ? '✅ CORRECT' : '❌ DATA MISMATCH'}</strong><br>`;
+
+  // If counts match but data doesn't, pinpoint the difference
+  if (!isCorrect && _dbgUserCols.length === _dbgExpCols.length && _dbgUserRows === _dbgExpRows) {
+    const normalize = (val) => {
+      if (val === null || val === undefined) return 'NULL';
+      if (typeof val === 'number') return Math.round(val * 10000) / 10000;
+      return String(val).trim();
+    };
+    // Map columns, then find first mismatching row (reordered)
+    const uFiltered = (userResult.results || []).filter(r => r.columns && r.columns.length > 0)[0];
+    const eFiltered = (expectedResult.results || []).filter(r => r.columns && r.columns.length > 0)[0];
+    
+    if (uFiltered && eFiltered) {
+        const uCols = uFiltered.columns.map(c => c.toLowerCase());
+        const eCols = eFiltered.columns.map(c => c.toLowerCase());
+        const colMap = eCols.map(ec => uCols.indexOf(ec));
+        const uSortedRows = uFiltered.values.map(r => colMap.map(idx => String(normalize(r[idx]))).join('|')).sort();
+        const eSortedRows = eFiltered.values.map(r => r.map(v => String(normalize(v))).join('|')).sort();
+        
+        let diffIdx = -1;
+        for (let j = 0; j < uSortedRows.length; j++) {
+            if (uSortedRows[j] !== eSortedRows[j]) { diffIdx = j; break; }
+        }
+        if (diffIdx !== -1) {
+            debugHtml += `<br><span style="color:#dc2626;">Diff Row #${diffIdx}:</span><br>User: [${uSortedRows[diffIdx]}]<br>Exp: [${eSortedRows[diffIdx]}]`;
+        }
+    }
+  }
+  debugHtml += `</div>`;
+
   resultDiv.innerHTML = sqlEngine.renderResults(userResult.results);
   const solveTime = Date.now() - arenaStartTime;
 
@@ -746,34 +881,21 @@ async function submitArenaAnswer() {
     q.solved = true;
     unlockNext(set, activeQuestionIndex);
     saveChallengeSets();
-
-    feedbackDiv.innerHTML = `
+    feedbackDiv.innerHTML = debugHtml + `
       <div style="padding:14px 20px;background:#dcfce7;border:1.5px solid #bbf7d0;border-radius:14px;display:flex;align-items:center;gap:12px;">
         <span style="font-size:1.5rem;">🎉</span>
-        <div>
-          <strong style="color:#15803d;">Correct!</strong> Solved in <strong>${fmtTime(solveTime)}</strong>.
-          ${activeQuestionIndex < set.questions.length - 1 ? '<br><span style="font-size:0.85rem;color:#15803d;opacity:0.7;">Next question unlocked! Click NEXT »</span>' : ''}
-        </div>
+        <div><strong style="color:#15803d;">Correct!</strong> Solved in <strong>${fmtTime(solveTime)}</strong>.</div>
       </div>`;
-
     renderSetsList();
-
-    if (set.questions.every(x => x.solved)) {
-      setTimeout(() => {
-        document.getElementById('arena-container').classList.remove('visible');
-        document.getElementById('completion-card').classList.add('visible');
-        document.getElementById('completion-card').scrollIntoView({ behavior: 'smooth' });
-      }, 1500);
-    }
   } else {
-    feedbackDiv.innerHTML = `
+    feedbackDiv.innerHTML = debugHtml + `
       <div style="padding:14px 20px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:14px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
           <span style="font-size:1.3rem;">❌</span>
           <strong style="color:#991b1b;">Wrong! Try again.</strong>
         </div>
         <div style="margin-top:10px;font-size:0.85rem;color:#718096;">
-          <strong>Expected query:</strong><br>
+          <strong>Expected:</strong><br>
           <code style="font-family:'JetBrains Mono',monospace;color:#b86a7c;font-size:0.8rem;">${escHtml(q.expected_query)}</code>
         </div>
       </div>`;
@@ -785,18 +907,63 @@ function unlockNext(set, idx) {
   if (idx + 1 < set.questions.length) set.questions[idx + 1].unlocked = true;
 }
 
+window.SQL_MASTER_DEBUG_VERSION = '1.1.5';
+
 function compareResults(ur, er) {
   if (!ur && !er) return true;
   if (!ur || !er) return false;
-  if (ur.length !== er.length) return false;
-  for (let i = 0; i < ur.length; i++) {
-    if (ur[i].columns.length !== er[i].columns.length) return false;
-    for (let c = 0; c < ur[i].columns.length; c++)
-      if (ur[i].columns[c].toLowerCase() !== er[i].columns[c].toLowerCase()) return false;
-    if (ur[i].values.length !== er[i].values.length) return false;
-    const us = [...ur[i].values].map(r => r.map(String).join('|')).sort();
-    const es = [...er[i].values].map(r => r.map(String).join('|')).sort();
-    for (let j = 0; j < us.length; j++) if (us[j] !== es[j]) return false;
+  
+  // Filter out empty result sets (sometimes produced by trailing semicolons)
+  const uFiltered = (ur || []).filter(r => r.columns && r.columns.length > 0);
+  const eFiltered = (er || []).filter(r => r.columns && r.columns.length > 0);
+  
+  if (uFiltered.length !== eFiltered.length) return false;
+
+  for (let i = 0; i < uFiltered.length; i++) {
+    const u = uFiltered[i], e = eFiltered[i];
+    if (u.columns.length !== e.columns.length) return false;
+
+    // Build case-insensitive column name mapping
+    const uCols = u.columns.map(c => c.toLowerCase());
+    const eCols = e.columns.map(c => c.toLowerCase());
+    
+    // Check column set matches
+    const uColSet = [...uCols].sort();
+    const eColSet = [...eCols].sort();
+    for (let c = 0; c < uColSet.length; c++) {
+      if (uColSet[c] !== eColSet[c]) return false;
+    }
+
+    // Map: index in expected -> index in user
+    const colMap = [];
+    const used = new Set();
+    for (let ec = 0; ec < eCols.length; ec++) {
+      const idx = uCols.findIndex((col, ci) => col === eCols[ec] && !used.has(ci));
+      if (idx === -1) return false;
+      colMap[ec] = idx;
+      used.add(idx);
+    }
+
+    if (u.values.length !== e.values.length) return false;
+
+    // Normalize value for comparison
+    const normalize = (val) => {
+      if (val === null || val === undefined) return '$$NULL$$';
+      if (typeof val === 'number') {
+        // Round numbers to 4 decimal places to avoid floating point issues
+        return Math.round(val * 10000) / 10000;
+      }
+      if (typeof val === 'string') return val.trim();
+      return String(val).trim();
+    };
+
+    // Prepare rows for comparison: reorder user columns to match expected, normalize, then stringify
+    const usRows = u.values.map(row => colMap.map(idx => normalize(row[idx])).join('|')).sort();
+    const esRows = e.values.map(row => e.columns.map((_, idx) => normalize(row[idx])).join('|')).sort();
+
+    for (let j = 0; j < usRows.length; j++) {
+      if (usRows[j] !== esRows[j]) return false;
+    }
   }
   return true;
 }

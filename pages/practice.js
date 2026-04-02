@@ -345,16 +345,33 @@ function compareResults(userResults, expectedResults) {
     const er = expectedResults[i];
 
     if (ur.columns.length !== er.columns.length) return false;
-    
-    // Check column names exactly
-    for (let c = 0; c < ur.columns.length; c++) {
-      if (ur.columns[c].toLowerCase() !== er.columns[c].toLowerCase()) return false;
+
+    // Build case-insensitive column name mapping (user col index -> expected col index)
+    const userColsLower = ur.columns.map(c => c.toLowerCase());
+    const expectedColsLower = er.columns.map(c => c.toLowerCase());
+
+    // Check that both have the same set of column names (order-independent)
+    const userColSet = [...userColsLower].sort();
+    const expectedColSet = [...expectedColsLower].sort();
+    for (let c = 0; c < userColSet.length; c++) {
+      if (userColSet[c] !== expectedColSet[c]) return false;
+    }
+
+    // Map: for each expected column index, find the matching user column index
+    const userToExpectedOrder = [];
+    const usedIndices = new Set();
+    for (let ec = 0; ec < expectedColsLower.length; ec++) {
+      const matchIdx = userColsLower.findIndex((col, idx) => col === expectedColsLower[ec] && !usedIndices.has(idx));
+      if (matchIdx === -1) return false;
+      userToExpectedOrder[ec] = matchIdx;
+      usedIndices.add(matchIdx);
     }
 
     if (ur.values.length !== er.values.length) return false;
 
-    // Sort both result sets for comparison (order-independent)
-    const userSorted = [...ur.values].map(r => r.map(String).join('|')).sort();
+    // Reorder user rows to match expected column order, then compare
+    const reorderRow = (row) => userToExpectedOrder.map(idx => row[idx]);
+    const userSorted = [...ur.values].map(r => reorderRow(r).map(String).join('|')).sort();
     const expectedSorted = [...er.values].map(r => r.map(String).join('|')).sort();
 
     for (let j = 0; j < userSorted.length; j++) {
