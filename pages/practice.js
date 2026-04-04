@@ -304,6 +304,13 @@ async function checkAnswer() {
     `;
     await ProgressManager.saveQuestion(q.id, true, solveTime);
     await ProgressManager.saveClauseMastered(q.topic);
+    // Save all detected clauses from the expected query
+    if (typeof detectClausesFromSQL === 'function') {
+      const allClauses = detectClausesFromSQL(q.expected_query);
+      for (const clause of allClauses) {
+        await ProgressManager.saveClauseMastered(clause);
+      }
+    }
   } else {
     feedbackDiv.innerHTML = `
       <div class="feedback feedback-error">

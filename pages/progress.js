@@ -2,8 +2,8 @@
  * Progress Page - Enhanced with Speed, Clauses Mastered, Daily Challenge
  */
 
-// All SQL clause names for tracking
-const ALL_CLAUSES = [
+// Use taxonomy if available, fallback to static list
+const ALL_CLAUSES = (typeof ALL_CLAUSE_LIST !== 'undefined') ? ALL_CLAUSE_LIST : [
   'SELECT', 'DISTINCT', 'WHERE', 'AND', 'OR', 'NOT', 'LIKE', 'BETWEEN', 'IN',
   'IS NULL', 'ORDER BY', 'LIMIT', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX',
   'GROUP BY', 'HAVING', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'SELF JOIN',
@@ -14,6 +14,8 @@ const ALL_CLAUSES = [
   'Window Aggregates', 'String Functions', 'Date Functions',
   'Transactions'
 ];
+
+let activeClauseFilter = 'all'; // Track currently active category filter
 
 let allQuestions = [];
 let dailyChallengeData = null;
@@ -50,6 +52,104 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   setupEventListeners();
 });
+
+// ===== CLAUSES MASTERED (Taxonomy-Driven) =====
+function renderClausesMastered(progress) {
+  const mastered = progress.clausesMastered || [];
+  const grid = document.getElementById('clauses-grid');
+  const countEl = document.getElementById('clauses-count');
+  const filtersEl = document.getElementById('clause-category-filters');
+  
+  if (countEl) countEl.textContent = `${mastered.length} / ${ALL_CLAUSES.length} mastered`;
+
+  // Render category filter toggles
+  if (filtersEl && typeof SQL_CLAUSE_TAXONOMY !== 'undefined') {
+    let filtersHtml = `<button class="clause-category-toggle ${activeClauseFilter === 'all' ? 'active' : ''}" data-filter="all">🔖 ALL</button>`;
+    for (const [key, cat] of Object.entries(SQL_CLAUSE_TAXONOMY)) {
+      const catMastered = cat.clauses.filter(c => mastered.includes(c)).length;
+      const badge = catMastered === cat.clauses.length ? ' ✓' : ` ${catMastered}/${cat.clauses.length}`;
+      filtersHtml += `<button class="clause-category-toggle ${activeClauseFilter === key ? 'active' : ''}" data-filter="${key}">${cat.label}${badge}</button>`;
+    }
+    filtersEl.innerHTML = filtersHtml;
+
+    // Attach click handlers
+    filtersEl.querySelectorAll('.clause-category-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeClauseFilter = btn.dataset.filter;
+        renderClausesMastered(progress);
+      });
+    });
+  }
+
+  // Filter clauses by active category
+  let clausesToShow = ALL_CLAUSES;
+  if (activeClauseFilter !== 'all' && typeof SQL_CLAUSE_TAXONOMY !== 'undefined') {
+    const cat = SQL_CLAUSE_TAXONOMY[activeClauseFilter];
+    if (cat) clausesToShow = cat.clauses;
+  }
+
+  if (grid) {
+    grid.innerHTML = clausesToShow.map(clause => {
+      const isMastered = mastered.includes(clause);
+      return `<span class="clause-chip ${isMastered ? 'mastered' : 'locked'}">
+        ${isMastered ? '✓' : '🔒'} ${clause}
+      </span>`;
+    }).join('');
+  }
+
+  // Render weak areas
+  renderWeakAreas(progress);
+}
+
+// ===== WEAK AREAS =====
+function renderWeakAreas(progress) {
+  const container = document.getElementById('weak-areas-container');
+  const countEl = document.getElementById('weak-areas-count');
+  if (!container) return;
+
+  const mastered = progress.clausesMastered || [];
+
+  if (typeof SQL_CLAUSE_TAXONOMY === 'undefined' || typeof getWeakAreas !== 'function') {
+    container.innerHTML = '<div style="color:#718096; font-size:0.85rem;">Taxonomy data not loaded.</div>';
+    return;
+  }
+
+  const weakAreas = getWeakAreas(mastered);
+  const weakCategories = Object.entries(weakAreas);
+  
+  if (countEl) {
+    const totalCats = Object.keys(SQL_CLAUSE_TAXONOMY).length;
+    const fullCats = totalCats - weakCategories.length;
+    countEl.textContent = `${fullCats} / ${totalCats} categories complete`;
+  }
+
+  if (weakCategories.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:20px; color:#15803d; font-weight:700; font-size:0.95rem;">
+        🏆 You've mastered ALL clause categories! Incredible work!
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = weakCategories.map(([key, data]) => {
+    const pct = Math.round((data.mastered / data.total) * 100);
+    const barClass = pct >= 70 ? 'green' : pct >= 30 ? 'yellow' : 'red';
+    const unmasteredPreview = data.unmastered.slice(0, 3).join(', ');
+    const moreCount = data.unmastered.length > 3 ? ` +${data.unmastered.length - 3} more` : '';
+
+    return `
+      <div class="weak-area-item">
+        <div class="weak-area-label">${data.label}</div>
+        <div class="weak-area-bar-track">
+          <div class="weak-area-bar-fill ${barClass}" style="width:${pct}%"></div>
+        </div>
+        <div class="weak-area-stat">${data.mastered}/${data.total}</div>
+      </div>
+      <div style="margin:-6px 0 14px 196px; font-size:0.68rem; color:#a0a8b4; font-weight:600;">
+        Missing: ${unmasteredPreview}${moreCount}
+      </div>`;
+  }).join('');
+}
 
 function setupEventListeners() {
   const resetBtn = document.getElementById('reset-btn');
@@ -262,23 +362,8 @@ async function renderProgress() {
   renderCompletedList(p);
 }
 
-// ===== CLAUSES MASTERED =====
-function renderClausesMastered(progress) {
-  const mastered = progress.clausesMastered || [];
-  const grid = document.getElementById('clauses-grid');
-  const countEl = document.getElementById('clauses-count');
-  
-  if (countEl) countEl.textContent = `${mastered.length} / ${ALL_CLAUSES.length} mastered`;
 
-  if (grid) {
-    grid.innerHTML = ALL_CLAUSES.map(clause => {
-      const isMastered = mastered.includes(clause);
-      return `<span class="clause-chip ${isMastered ? 'mastered' : 'locked'}">
-        ${isMastered ? '✓' : '🔒'} ${clause}
-      </span>`;
-    }).join('');
-  }
-}
+// (renderClausesMastered is defined above — taxonomy-driven version)
 
 // ===== DAILY CHALLENGE =====
 async function renderDailyChallenge() {
@@ -487,6 +572,13 @@ async function checkDailyAnswer(qId) {
     feedbackDiv.innerHTML = `<div class="feedback feedback-success"><span class="feedback-icon">🎉</span><div><strong>Correct!</strong> Solved in <strong>${ProgressManager.formatTime(solveTime)}</strong></div></div>`;
     await ProgressManager.saveQuestion(q.id, true, solveTime);
     await ProgressManager.saveClauseMastered(q.topic);
+    // Save all detected clauses from the expected query
+    if (typeof detectClausesFromSQL === 'function') {
+      const allClauses = detectClausesFromSQL(q.expected_query);
+      for (const clause of allClauses) {
+        await ProgressManager.saveClauseMastered(clause);
+      }
+    }
     await ProgressManager.solveDailyChallengeQuestion(q.id);
 
     // Refresh the challenge UI

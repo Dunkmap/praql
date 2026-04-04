@@ -31,6 +31,8 @@
     <div style="display: flex; gap: 35px; align-items: center; margin-right: 120px;">
       <a href="learn.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">LEARN</a>
       <a href="practice.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">PRACTICE</a>
+      <a href="challenges.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">🏆 CHALLENGES</a>
+      <a href="leetcode.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">🧠 LEETCODE</a>
       <a href="ai.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">✨ AI_SQL</a>
       <div style="display: flex; flex-direction: column; align-items: center;">
         <a href="progress.html" style="text-decoration: none; color: #b86a7c; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">PROGRESS</a>
@@ -258,12 +260,27 @@
 
     <!-- CLAUSES MASTERED Section -->
     <div style="background-color: #ffffff; border-radius: 20px; padding: 30px; border: 1.5px solid #eae1d7; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 30px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h2 style="font-size: 1.1rem; font-weight: 700; color: #32475b; margin: 0;">CLAUSES MASTERED</h2>
-        <span id="clauses-count" style="font-size: 0.85rem; font-weight: 600; color: #718096;">0 / 45 mastered</span>
+        <span id="clauses-count" style="font-size: 0.85rem; font-weight: 600; color: #718096;">0 / 0 mastered</span>
+      </div>
+      <!-- Category Filter Toggles -->
+      <div class="clause-category-filters" id="clause-category-filters">
+        <!-- Rendered by JS -->
       </div>
       <div id="clauses-grid" style="display: flex; flex-wrap: wrap; gap: 10px;">
         <!-- Chips added here -->
+      </div>
+    </div>
+
+    <!-- WEAK AREAS Section -->
+    <div style="background-color: #ffffff; border-radius: 20px; padding: 30px; border: 1.5px solid #eae1d7; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 30px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.1rem; font-weight: 700; color: #32475b; margin: 0;">⚡ SKILL GAPS</h2>
+        <span id="weak-areas-count" style="font-size: 0.85rem; font-weight: 600; color: #718096;"></span>
+      </div>
+      <div id="weak-areas-container">
+        <!-- Rendered by JS -->
       </div>
     </div>
 
@@ -288,6 +305,7 @@
 
   <script src="../sql_engine/sql-wasm.js"></script>
   <script src="../sql_engine/engine.js"></script>
+  <script src="../sql_engine/clause_taxonomy.js"></script>
   <script src="../lessons/lessons_data.js"></script>
   <script src="../questions/questions_data.js"></script>
   <script src="progress.js"></script>

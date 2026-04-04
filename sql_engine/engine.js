@@ -201,7 +201,7 @@ class ProgressManager {
   static _KEYS = [
     'userName', 'topicsCompleted', 'questionsSolved', 'questionsAttempted', 'solvedQuestionIds',
     'questionTimes', 'totalSolveTimeMs', 'dailyChallenge', 'streak', 'lastChallengeDate',
-    'clausesMastered'
+    'clausesMastered', 'leetcodeScore', 'leetcodeStreak', 'leetcodeAttempted', 'leetcodeCorrect'
   ];
 
   static async getProgress() {
@@ -229,8 +229,33 @@ class ProgressManager {
       dailyChallenge: data.dailyChallenge || null,
       streak: data.streak || 0,
       lastChallengeDate: data.lastChallengeDate || null,
-      clausesMastered: data.clausesMastered || []
+      clausesMastered: data.clausesMastered || [],
+      leetcodeScore: data.leetcodeScore || 0,
+      leetcodeStreak: data.leetcodeStreak || 0,
+      leetcodeAttempted: data.leetcodeAttempted || 0,
+      leetcodeCorrect: data.leetcodeCorrect || 0
     };
+  }
+
+  static async saveLeetcodeStats(stats) {
+    return new Promise((resolve) => {
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        chrome.storage.local.set({
+          leetcodeScore: stats.score,
+          leetcodeStreak: stats.streak,
+          leetcodeAttempted: stats.attempted,
+          leetcodeCorrect: stats.correct
+        }, resolve);
+      } else {
+        const data = JSON.parse(localStorage.getItem('sqlmaster_progress') || '{}');
+        data.leetcodeScore = stats.score;
+        data.leetcodeStreak = stats.streak;
+        data.leetcodeAttempted = stats.attempted;
+        data.leetcodeCorrect = stats.correct;
+        localStorage.setItem('sqlmaster_progress', JSON.stringify(data));
+        resolve();
+      }
+    });
   }
 
   static async saveUserName(name) {

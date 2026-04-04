@@ -7,6 +7,7 @@ function setupNavigation() {
     'open-learn': 'pages/learn.html',
     'open-practice': 'pages/practice.html',
     'open-challenges': 'pages/challenges.html',
+    'open-leetcode': 'pages/leetcode.html',
     'open-ai': 'pages/ai.html',
     'open-progress-btn': 'pages/progress.html'
   };

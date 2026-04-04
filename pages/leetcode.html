@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeetCode SQL Guesser - SQL Master</title>
+  <meta name="description" content="Guess the SQL clauses needed to solve each challenge. Test your SQL intuition!">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="theme.js" defer></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    .app-container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+
+    /* ===== Header ===== */
+    .lc-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 35px; }
+    .lc-header h1 { font-size: 2.4rem; font-weight: 800; color: #b86a7c; margin: 0; letter-spacing: -1.5px; }
+    .lc-header p { color: #718096; margin-top: 8px; font-weight: 700; font-size: 0.85rem; }
+
+    /* ===== Stats Bar ===== */
+    .lc-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+    .lc-stat-card {
+      background: #ffffff;
+      border: 1.5px solid #eae1d7;
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    }
+    .lc-stat-label {
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #718096;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .lc-stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+    }
+
+    /* ===== Difficulty Selector ===== */
+    .lc-difficulty-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .lc-diff-btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1.5px solid #eae1d7;
+      background: #fdfaf7;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      color: #718096;
+    }
+    .lc-diff-btn:hover { border-color: #b86a7c; color: #b86a7c; transform: translateY(-2px); }
+    .lc-diff-btn.active.easy { background: #dcfce7; border-color: #86efac; color: #15803d; }
+    .lc-diff-btn.active.medium { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+    .lc-diff-btn.active.hard { background: #fecaca; border-color: #fca5a5; color: #991b1b; }
+    .lc-diff-btn.active.all { background: #fbe6dd; border-color: #ebcdc0; color: #b86a7c; }
+
+    /* ===== Main Challenge Card ===== */
+    .lc-challenge-card {
+      background: #ffffff;
+      border: 1.5px solid #eae1d7;
+      border-radius: 28px;
+      padding: 40px 44px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    .lc-challenge-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .lc-q-number {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #b86a7c;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .lc-q-diff {
+      padding: 4px 14px;
+      border-radius: 10px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .lc-q-diff.easy { background: #dcfce7; color: #15803d; }
+    .lc-q-diff.medium { background: #fef3c7; color: #92400e; }
+    .lc-q-diff.hard { background: #fecaca; color: #991b1b; }
+
+    .lc-question-text {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #32475b;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    /* ===== Clause Guessing Area ===== */
+    .lc-guess-section-label {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #b86a7c;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lc-clause-pool {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 24px;
+      padding: 20px;
+      background: #fcf6f0;
+      border: 1.5px dashed #e2d5ca;
+      border-radius: 18px;
+      min-height: 50px;
+    }
+
+    .lc-clause-btn {
+      padding: 7px 16px;
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1.5px solid #e2d5ca;
+      background: #ffffff;
+      color: #32475b;
+      user-select: none;
+    }
+    .lc-clause-btn:hover { border-color: #b86a7c; color: #b86a7c; transform: translateY(-2px); box-shadow: 0 3px 8px rgba(184,106,124,0.1); }
+    .lc-clause-btn.selected {
+      background: linear-gradient(135deg, #fbe6dd, #fdd5c7);
+      border-color: #ebcdc0;
+      color: #b86a7c;
+      box-shadow: 0 2px 6px rgba(184,106,124,0.15);
+    }
+    .lc-clause-btn.correct {
+      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+      border-color: #86efac;
+      color: #15803d;
+      animation: popIn 0.3s ease;
+    }
+    .lc-clause-btn.wrong {
+      background: #fef2f2;
+      border-color: #fca5a5;
+      color: #991b1b;
+      opacity: 0.7;
+    }
+    .lc-clause-btn.missed {
+      background: #fffbeb;
+      border-color: #fcd34d;
+      color: #92400e;
+      border-style: dashed;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.9); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    /* ===== Your Picks Zone ===== */
+    .lc-picks-zone {
+      padding: 16px 20px;
+      background: #f8fafb;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 16px;
+      min-height: 40px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .lc-picks-placeholder {
+      font-size: 0.78rem;
+      color: #a0a8b4;
+      font-weight: 600;
+    }
+
+    /* ===== Actions ===== */
+    .lc-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    .lc-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 14px;
+      padding: 14px 32px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.15s;
+    }
+    .lc-btn:active { transform: translateY(2px); }
+    .lc-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .lc-btn-check {
+      background: linear-gradient(135deg, #b86a7c, #d48a9c);
+      color: white;
+      box-shadow: 0 4px 0 #9e5468, 0 6px 20px rgba(184,106,124,0.25);
+    }
+    .lc-btn-check:hover:not(:disabled) { background: linear-gradient(135deg, #c77a8c, #e49aac); }
+    .lc-btn-skip {
+      background: #f2e7de;
+      color: #718096;
+      box-shadow: 0 4px 0 #dcd1c6;
+    }
+    .lc-btn-next {
+      background: #c0ebd0;
+      color: #437653;
+      box-shadow: 0 4px 0 #9dcdae;
+    }
+    .lc-btn-del {
+      background: #fee2e2;
+      color: #ef4444;
+      box-shadow: 0 4px 0 #fca5a5;
+    }
+
+    /* ===== Feedback ===== */
+    .lc-feedback {
+      margin-top: 20px;
+      padding: 18px 22px;
+      border-radius: 16px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      animation: fadeIn 0.3s ease;
+    }
+    .lc-feedback.visible { display: flex; }
+    .lc-feedback.success { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #15803d; }
+    .lc-feedback.partial { background: #fffbeb; border: 1.5px solid #fde68a; color: #92400e; }
+    .lc-feedback.fail { background: #fef2f2; border: 1.5px solid #fecaca; color: #991b1b; }
+
+    .lc-answer-reveal {
+      margin-top: 16px;
+      padding: 14px 18px;
+      background: #373e47;
+      border-radius: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #a0c4ff;
+      line-height: 1.6;
+      display: none;
+    }
+    .lc-answer-reveal.visible { display: block; }
+
+    /* ===== Topic Tag ===== */
+    .lc-topic-tag {
+      display: inline-block;
+      padding: 3px 12px;
+      border-radius: 8px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      background: #f0f5ff;
+      color: #5b7db1;
+      border: 1px solid #d4e0f0;
+      margin-left: 10px;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+      .lc-header h1 { font-size: 1.8rem; }
+      .lc-stats { grid-template-columns: repeat(2, 1fr); }
+      .lc-challenge-card { padding: 24px; border-radius: 22px; }
+      .lc-difficulty-bar { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <nav style="display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 2px solid var(--bg-grid); position: relative; background: var(--bg-primary);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <svg width="45" height="45" viewBox="0 0 60 60" style="filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.05));">
+          <path d="M10,40 Q30,50 50,40 L50,48 Q30,58 10,48 Z" fill="#b9e7fa" stroke="#2d3748" stroke-width="2.5"/>
+          <path d="M10,30 Q30,40 50,30 L50,38 Q30,48 10,38 Z" fill="#fbdcd9" stroke="#2d3748" stroke-width="2.5"/>
+          <path d="M10,20 Q30,30 50,20 L50,28 Q30,38 10,28 Z" fill="#d0f0fd" stroke="#2d3748" stroke-width="2.5"/>
+          <path d="M10,20 Q30,10 50,20 Q30,30 10,20 Z" fill="#e7f6fe" stroke="#2d3748" stroke-width="2.5"/>
+          <line x1="20" y1="35" x2="20" y2="46" stroke="#2d3748" stroke-width="2.5"/>
+          <line x1="40" y1="24" x2="40" y2="40" stroke="#2d3748" stroke-width="2.5"/>
+        </svg>
+        <span style="font-size: 1.5rem; font-weight: 600; color: #32475b; letter-spacing: -0.5px;">SQL Master</span>
+      </div>
+      <div style="display: flex; gap: 35px; align-items: center; margin-right: 120px;">
+        <a href="learn.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">LEARN</a>
+        <a href="practice.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">PRACTICE</a>
+        <a href="challenges.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">🏆 CHALLENGES</a>
+        <div style="display: flex; flex-direction: column; align-items: center;">
+          <a href="leetcode.html" style="text-decoration: none; color: #b86a7c; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">🧠 LEETCODE</a>
+          <span style="font-size: 0.8rem; color: #b86a7c; margin-top: -4px;">^</span>
+        </div>
+        <a href="progress.html" style="text-decoration: none; color: #718096; font-weight: 600; letter-spacing: 0.5px; font-size: 0.95rem;">PROGRESS</a>
+        <div class="theme-toggle"><div class="toggle-circle"></div></div>
+      </div>
+    </nav>
+
+    <div class="main-content">
+      <!-- Header -->
+      <div class="lc-header">
+        <div>
+          <h1>🧠 LEETCODE VAULT</h1>
+          <p>YOUR PERSONALIZED DATABASE OF CAPTURED SQL PROBLEMS, AUTOMATICALLY EXTRACTED AND SOLVED BY AI.</p>
+        </div>
+      </div>
+
+      <!-- Difficulty Selector -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 15px;">
+        <div class="lc-difficulty-bar" style="margin-bottom: 0;">
+          <button class="lc-diff-btn active captured" data-diff="captured" style="border-color: #c084fc; color: #7e22ce; background: #faf5ff;">📦 CAPTURED VAULT</button>
+        </div>
+
+        <!-- NEW: Clause Filter for Captured Mode -->
+        <div id="lc-clause-filter-container" style="display: flex; align-items: center; gap: 10px;">
+          <label style="font-size: 0.75rem; font-weight: 800; color: #718096;">FILTER BY CLAUSE:</label>
+          <select id="lc-clause-filter" style="padding: 8px 16px; border-radius: 12px; border: 1.5px solid #cbd5e1; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; font-weight: 700; color: #32475b; outline: none; cursor: pointer; background: white;">
+            <option value="ALL">ALL CLAUSES</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- NEW: GLOBAL API SETTINGS FOR CAPTURED MODE -->
+      <div id="lc-api-settings-container" style="display: none; background: #fcf6f0; padding: 20px; border-radius: 16px; border: 1.5px solid #e2e8f0; margin-bottom: 24px;">
+         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+           <label style="font-size: 0.85rem; font-weight: 800; color: #32475b; letter-spacing: 0.5px;">🤖 AUTO-SOLVER ENGINE <span style="color:#718096; font-weight:600;">(Groq API)</span></label>
+           <a href="https://console.groq.com/keys" target="_blank" style="font-size: 0.8rem; font-weight: 800; color: #b86a7c; text-decoration: none; padding: 6px 14px; background: rgba(184,106,124,0.1); border-radius: 8px;">🔗 Get Free API Key</a>
+         </div>
+         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+           <input type="password" id="global-lc-api-key" placeholder="Paste your gsk_... key here safely" style="flex: 1; min-width: 250px; padding: 12px 16px; border-radius: 12px; border: 1px solid #cbd5e1; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; outline: none;">
+           <button id="save-global-lc-key" class="lc-btn lc-btn-check" style="padding: 12px 24px; font-size: 0.85rem; margin: 0; box-shadow: 0 4px 15px rgba(184,106,124,0.2);">💾 SAVE SECURELY</button>
+         </div>
+         <div id="lc-api-save-status" style="font-size: 0.75rem; color: #10b981; font-weight: 800; margin-top: 10px; display: none;">✅ KEY STORED LOCALLY FOREVER</div>
+      </div>
+
+      <!-- Challenge Card -->
+      <div class="lc-challenge-card" id="lc-challenge-card">
+        <div class="lc-challenge-header">
+          <div>
+            <div class="lc-q-number" id="lc-q-number" style="min-height: 20px;"></div>
+            <span class="lc-q-diff easy" id="lc-q-diff" style="display:none;"></span>
+            <span class="lc-topic-tag" id="lc-topic-tag" style="display:none;"></span>
+          </div>
+          <div style="text-align:right; font-size:0.75rem; font-weight:800; color:#718096; min-height: 20px;">
+            <span id="lc-progress-text"></span>
+          </div>
+        </div>
+
+        <div class="lc-question-text" id="lc-question-text">
+          <div style="text-align:center; padding:40px; color:#a0aec0;">
+             <div style="font-size:2rem; margin-bottom:10px;">⏳</div>
+             <div style="font-size:0.8rem; font-weight:800; letter-spacing:1px;">ACCESSING VAULT...</div>
+          </div>
+        </div>
+
+        <!-- Clause Pool -->
+        <div class="lc-guess-section-label" style="display:none;">🎯 SELECT THE CLAUSES NEEDED TO SOLVE THIS</div>
+        <div class="lc-clause-pool" id="lc-clause-pool" style="display:none;">
+          <!-- Clause buttons rendered by JS -->
+        </div>
+
+        <!-- Your Picks -->
+        <div class="lc-guess-section-label" style="display:none;">✅ YOUR PICKS</div>
+        <div class="lc-picks-zone" id="lc-picks-zone" style="display:none;">
+          <span class="lc-picks-placeholder" id="lc-picks-placeholder">Click clauses above to make your guess...</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="lc-actions" id="lc-game-actions" style="display:none;">
+          <button class="lc-btn lc-btn-skip" id="lc-skip-btn">⏭ SKIP</button>
+          <button class="lc-btn lc-btn-check" id="lc-check-btn" disabled>CHECK ANSWER</button>
+        </div>
+
+        <!-- Captured Mode Navigation -->
+        <div class="lc-actions" id="lc-captured-nav" style="display: none; align-items: stretch; justify-content: space-between; gap: 10px;">
+          <button class="lc-btn lc-btn-skip" id="lc-prev-btn" style="flex: 1; justify-content: center;">⬅ PREV</button>
+          <button class="lc-btn lc-btn-del" id="lc-del-btn" style="flex: 1; justify-content: center;">🗑️ REMOVE</button>
+          <button class="lc-btn lc-btn-next" id="lc-next-btn" style="flex: 1; justify-content: center;">NEXT ➡</button>
+        </div>
+
+        <!-- Feedback -->
+        <div class="lc-feedback" id="lc-feedback"></div>
+        <div class="lc-answer-reveal" id="lc-answer-reveal"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../sql_engine/sql-wasm.js"></script>
+  <script src="../sql_engine/engine.js"></script>
+  <script src="../sql_engine/clause_taxonomy.js"></script>
+  <script src="../questions/questions_data.js"></script>
+  <script src="leetcode.js"></script>
+</body>
+</html>
