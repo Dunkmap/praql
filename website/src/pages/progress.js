@@ -26,11 +26,6 @@ export function renderProgress() {
     <div id="clause-mastery" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
   </div>
 
-  <div class="card" style="margin-bottom:24px;">
-    <div class="card-title" style="margin-bottom:12px;">🎯 DAILY CHALLENGE</div>
-    <div id="daily-challenge"></div>
-  </div>
-
   <div style="text-align:center;margin-top:32px;">
     <button class="btn btn-secondary" id="reset-progress-btn" style="color:var(--accent-red);border-color:var(--accent-red);">↺ Reset All Progress</button>
   </div>`;
@@ -42,7 +37,6 @@ export async function initProgress() {
   ProgressManager.renderActivityChart('progress-activity', progress, 140);
   renderSpeedStats(progress);
   renderClauseMastery(progress);
-  await renderDailyChallenge(progress);
 
   document.getElementById('reset-progress-btn')?.addEventListener('click', async () => {
     if (confirm('Reset ALL progress? This cannot be undone.')) {
@@ -106,28 +100,3 @@ function renderClauseMastery(progress) {
   }
 }
 
-async function renderDailyChallenge(progress) {
-  const container = document.getElementById('daily-challenge');
-  if (!container) return;
-
-  let allQuestions = [];
-  if (window.QUESTIONS_DATA) {
-    allQuestions = [...(QUESTIONS_DATA.easy||[]), ...(QUESTIONS_DATA.medium||[]), ...(QUESTIONS_DATA.hard||[])];
-  }
-  if (allQuestions.length === 0) {
-    container.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">Questions data loading...</span>';
-    return;
-  }
-
-  const challenge = await ProgressManager.getDailyChallenge(allQuestions);
-  container.innerHTML = `
-    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      ${challenge.questions.map(q => `
-        <div style="flex:1;min-width:150px;padding:14px;border:1.5px solid ${q.solved ? 'var(--accent-green-border)' : 'var(--border-color)'};border-radius:var(--radius-md);text-align:center;background:${q.solved ? 'var(--accent-green-light)' : 'var(--bg-card)'};">
-          <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);">${q.difficulty}</div>
-          <div style="font-size:1.2rem;margin-top:4px;">${q.solved ? '✅' : '⏳'}</div>
-        </div>
-      `).join('')}
-    </div>
-    ${challenge.completed ? '<div style="text-align:center;margin-top:12px;color:var(--accent-green);font-weight:800;">🎉 Daily challenge completed!</div>' : ''}`;
-}

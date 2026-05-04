@@ -19,6 +19,8 @@ export function renderNavbar() {
       <a class="nav-link" href="#/practice"><span class="nav-icon">🎯</span> Practice</a>
       <a class="nav-link" href="#/playground"><span class="nav-icon">🧪</span> Playground</a>
       <a class="nav-link" href="#/bugsquasher"><span class="nav-icon">🐛</span> Bug Squasher</a>
+      <a class="nav-link" href="#/detective"><span class="nav-icon">🕵️</span> Detective</a>
+      <a class="nav-link" href="#/leetcode"><span class="nav-icon">⚡</span> LeetCode</a>
       <a class="nav-link" href="#/progress"><span class="nav-icon">📊</span> Progress</a>
       <button class="theme-btn" id="theme-toggle-btn" title="Toggle theme">
         <span class="theme-icon">🌙</span>

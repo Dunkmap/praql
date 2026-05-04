@@ -69,6 +69,8 @@ router
   .on('/practice', () => loadPage('practice'))
   .on('/playground', () => loadPage('playground'))
   .on('/bugsquasher', () => loadPage('bugsquasher'))
+  .on('/detective', () => loadPage('detective'))
+  .on('/leetcode', () => loadPage('leetcode'))
   .on('/studio', () => loadPage('studio'))
   .on('/progress', () => loadPage('progress'));
 
