@@ -12,6 +12,8 @@
 
   // Watch for the page to finish building (SPA and dynamic content)
   const observer = new MutationObserver(() => {
+    injectSolutionAIButton();
+
     if (location.href.includes('/problems/') && location.href !== lastCapturedUrl) {
         const isTabSpecific = location.href.includes('/solutions/') || location.href.includes('/submissions/');
         if (!isTabSpecific) {
@@ -187,4 +189,254 @@
       }
     }, 7000);
   }
+
+  // --- AI Auto Fill for Solutions ---
+  function injectSolutionAIButton() {
+    const isSolutionPage = window.location.href.includes('/solutions/new') || 
+                           window.location.href.includes('/solutions/edit');
+
+    const titleInput = document.querySelector('input[placeholder="Enter your title"]');
+    
+    // Only proceed if we are genuinely on a solution page or have the title input
+    if (!isSolutionPage && !titleInput) return;
+
+    // Check if injected
+    if (document.getElementById('sql-master-ai-autofill')) return;
+
+    // Find Post button container
+    const buttons = Array.from(document.querySelectorAll('button'));
+    const postBtn = buttons.find(b => b.innerText && b.innerText.includes('Post'));
+    if (!postBtn) return;
+
+    const btnContainer = postBtn.parentElement;
+
+    const aiBtn = document.createElement('button');
+    aiBtn.id = 'sql-master-ai-autofill';
+    aiBtn.innerHTML = '✨ AI Auto Fill';
+    aiBtn.style.cssText = `
+      background: linear-gradient(135deg, #FF6B6B, #9B59B6);
+      color: white; border: none; padding: 6px 16px; border-radius: 6px;
+      font-weight: 600; cursor: pointer; display: flex; align-items: center;
+      gap: 6px; margin-right: 12px; font-family: inherit; font-size: 14px;
+      transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+    `;
+    
+    aiBtn.onmouseenter = () => aiBtn.style.transform = 'translateY(-1px) scale(1.02)';
+    aiBtn.onmouseleave = () => aiBtn.style.transform = 'translateY(0) scale(1)';
+
+    aiBtn.onclick = async (e) => {
+      e.preventDefault();
+      await executeAIAutoFill(aiBtn);
+    };
+
+    btnContainer.insertBefore(aiBtn, postBtn);
+  }
+
+  async function executeAIAutoFill(aiBtn) {
+    aiBtn.innerHTML = '⏳ Reading code...';
+    aiBtn.style.opacity = '0.7';
+    aiBtn.style.pointerEvents = 'none';
+
+    try {
+      // ─── STEP 1: Ask the MAIN world bridge to extract code from Monaco ───
+      const extractedData = await new Promise((resolve) => {
+        const handler = (e) => {
+          document.removeEventListener('sql-master-extract-response', handler);
+          try { resolve(JSON.parse(e.detail)); } catch(err) { resolve({ error: 'Parse error' }); }
+        };
+        document.addEventListener('sql-master-extract-response', handler);
+        document.dispatchEvent(new CustomEvent('sql-master-extract-request'));
+
+        // Timeout fallback after 3s
+        setTimeout(() => {
+          document.removeEventListener('sql-master-extract-response', handler);
+          resolve({ error: 'Bridge timeout — main world script may not be loaded' });
+        }, 3000);
+      });
+
+      if (extractedData.error) {
+        console.warn('⚠️ Monaco extraction failed:', extractedData.error);
+      }
+
+      let userCode = extractedData.userCode || '';
+      let codeLang = extractedData.lang || '';
+
+      // ─── Fallback: DOM-based code extraction ───
+      if (!userCode || userCode.length < 10) {
+        console.log('📋 Falling back to DOM-based code extraction...');
+        const linesContainers = document.querySelectorAll('.view-lines');
+        
+        // First pass: find markdown editor and extract # Code block
+        for (const container of linesContainers) {
+          const text = Array.from(container.querySelectorAll('.view-line'))
+                            .map(e => e.textContent.replace(/\u00a0/g, ' '))
+                            .join('\n');
+
+          if (text.includes('# Intuition') || text.includes('# Code')) {
+            // Extract code between ```lang []\nCODE\n```
+            const codeMatch = text.match(/# Code\s*\n+```(\w*)\s*(?:\[\])?\s*\n([\s\S]*?)(?:\n```|$)/i);
+            if (codeMatch && codeMatch[2]) {
+              userCode = codeMatch[2].trim();
+              codeLang = codeMatch[1] || '';
+            }
+            if (userCode && userCode.length >= 10) break;
+          }
+        }
+
+        // Second pass: any non-markdown editor content
+        if (!userCode || userCode.length < 10) {
+          for (const container of linesContainers) {
+            const text = Array.from(container.querySelectorAll('.view-line'))
+                              .map(e => e.textContent.replace(/\u00a0/g, ' '))
+                              .join('\n');
+            if (text.length > 10 && !text.includes('# Intuition') && !text.includes('# Approach')) {
+              userCode = text;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!userCode || userCode.trim().length < 5) {
+        alert("⚠️ Could not find any code in the editor.\nPlease write your solution in the Code section first.");
+        resetBtn(aiBtn);
+        return;
+      }
+
+      console.log('✅ Extracted code (' + userCode.length + ' chars, lang: ' + codeLang + ')');
+
+      // ─── STEP 2: Determine problem context ───
+      const problemTitle = document.title.split('-')[0].trim() || 
+                          window.location.pathname.split('/')[2]?.replace(/-/g, ' ') || 
+                          'Unknown Problem';
+
+      // ─── STEP 3: Check API key ───
+      const { groqApiKey } = await chrome.storage.local.get({ groqApiKey: '' });
+      if (!groqApiKey) {
+        alert("SQL Master: Groq API Key not set!\nPlease open the extension popup and configure it.");
+        resetBtn(aiBtn);
+        return;
+      }
+
+      aiBtn.innerHTML = '🤖 Generating...';
+
+      // ─── STEP 4: AI Request — generate Intuition, Approach, Complexity ───
+      const systemPrompt = `You are an expert LeetCode problem solver and technical writer.
+Given a problem title and the user's solution code, generate ONLY the following sections:
+
+1. Intuition — A clear, concise explanation of the first thoughts on how to solve this problem.
+2. Approach — A step-by-step description of the approach taken in the code.
+3. Complexity — Time and Space complexity analysis.
+4. Title — A catchy, descriptive title for this solution.
+
+Return your response using EXACTLY this format with XML tags:
+<TITLE>A catchy, descriptive solution title</TITLE>
+<INTUITION>
+Your intuition explanation here (plain text, can use markdown formatting)
+</INTUITION>
+<APPROACH>
+Your approach explanation here (plain text, can use markdown formatting, numbered steps)
+</APPROACH>
+<TIME_COMPLEXITY>$$O(...)$$</TIME_COMPLEXITY>
+<SPACE_COMPLEXITY>$$O(...)$$</SPACE_COMPLEXITY>
+
+IMPORTANT:
+- Do NOT include any code in your response
+- Do NOT wrap your response in markdown code fences
+- Keep explanations clear and concise
+- Use $$ delimiters for complexity notation`;
+
+      const userPrompt = `Problem: ${problemTitle}\n\nUser's Solution Code (${codeLang || 'unknown'}):\n\`\`\`\n${userCode}\n\`\`\``;
+
+      const response = await new Promise(resolve => {
+        chrome.runtime.sendMessage({
+          type: 'GROQ_AI_GENERATE',
+          apiKey: groqApiKey,
+          systemPrompt,
+          userPrompt,
+          raw: true
+        }, resolve);
+      });
+
+      if (!response || !response.success) {
+        console.error("AI Error:", response?.error);
+        alert("AI Generation failed: " + (response?.error || 'Unknown error'));
+        resetBtn(aiBtn);
+        return;
+      }
+
+      // ─── STEP 5: Parse AI response ───
+      const aiText = response.text;
+      console.log('🤖 AI Response received (' + aiText.length + ' chars)');
+
+      const titleMatch = aiText.match(/<TITLE>([\s\S]*?)<\/TITLE>/i);
+      const intuitionMatch = aiText.match(/<INTUITION>([\s\S]*?)<\/INTUITION>/i);
+      const approachMatch = aiText.match(/<APPROACH>([\s\S]*?)<\/APPROACH>/i);
+      const timeMatch = aiText.match(/<TIME_COMPLEXITY>([\s\S]*?)<\/TIME_COMPLEXITY>/i);
+      const spaceMatch = aiText.match(/<SPACE_COMPLEXITY>([\s\S]*?)<\/SPACE_COMPLEXITY>/i);
+
+      if (!intuitionMatch || !approachMatch) {
+        console.error("Failed to parse AI tags. Raw:", aiText);
+        alert("Could not parse AI response. Copied to clipboard.\nCheck console for raw output.");
+        try { await navigator.clipboard.writeText(aiText); } catch(e) {}
+        resetBtn(aiBtn);
+        return;
+      }
+
+      const aiTitle = titleMatch ? titleMatch[1].trim() : problemTitle;
+      const intuition = intuitionMatch[1].trim();
+      const approach = approachMatch[1].trim();
+      const timeComplexity = timeMatch ? timeMatch[1].trim() : '$$O(n)$$';
+      const spaceComplexity = spaceMatch ? spaceMatch[1].trim() : '$$O(n)$$';
+
+      // ─── STEP 6: Build the full markdown preserving original code ───
+      const langTag = codeLang || '';
+      const finalMarkdown = `# Intuition\n${intuition}\n\n# Approach\n${approach}\n\n# Complexity\n- Time complexity:\n${timeComplexity}\n\n- Space complexity:\n${spaceComplexity}\n\n# Code\n\`\`\`${langTag} []\n${userCode}\n\`\`\``;
+
+      // ─── STEP 7: Send data to the MAIN world bridge for injection ───
+      aiBtn.innerHTML = '📝 Filling...';
+
+      const injectResult = await new Promise((resolve) => {
+        const handler = (e) => {
+          document.removeEventListener('sql-master-inject-response', handler);
+          try { resolve(JSON.parse(e.detail)); } catch(err) { resolve({ success: false, error: 'Parse error' }); }
+        };
+        document.addEventListener('sql-master-inject-response', handler);
+        
+        document.dispatchEvent(new CustomEvent('sql-master-inject-request', {
+          detail: JSON.stringify({ title: aiTitle, markdown: finalMarkdown })
+        }));
+
+        // Timeout
+        setTimeout(() => {
+          document.removeEventListener('sql-master-inject-response', handler);
+          resolve({ success: false, error: 'Inject timeout' });
+        }, 3000);
+      });
+
+      if (!injectResult.success) {
+        console.warn('⚠️ Monaco injection failed:', injectResult.error);
+        alert("Could not inject into editor. Solution copied to clipboard!\nError: " + injectResult.error);
+        try { await navigator.clipboard.writeText(finalMarkdown); } catch(e) {}
+        resetBtn(aiBtn);
+        return;
+      }
+
+      console.log('✅ AI Auto Fill complete!');
+      resetBtn(aiBtn, '✅ Done!');
+      setTimeout(() => resetBtn(aiBtn), 3000);
+
+    } catch (e) {
+      console.error('AI AutoFill Error:', e);
+      alert("An error occurred: " + e.message);
+      resetBtn(aiBtn);
+    }
+  }
+
+  function resetBtn(btn, text="✨ AI Auto Fill") {
+    btn.innerHTML = text;
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'all';
+  }
+
 })();

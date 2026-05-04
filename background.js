@@ -30,7 +30,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // ===== GROQ AI PROXY =====
-async function handleGroqAI({ apiKey, systemPrompt, userPrompt }) {
+async function handleGroqAI({ apiKey, systemPrompt, userPrompt, raw }) {
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -45,7 +45,7 @@ async function handleGroqAI({ apiKey, systemPrompt, userPrompt }) {
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.1,
-        max_tokens: 512,
+        max_tokens: 2048,
         stream: false
       })
     });
@@ -57,8 +57,11 @@ async function handleGroqAI({ apiKey, systemPrompt, userPrompt }) {
     }
 
     const data = await response.json();
-    let sql = (data.choices?.[0]?.message?.content || '').trim();
-    sql = sql.replace(/```sql\n?/gi, '').replace(/```\n?/g, '').trim();
+    let text = (data.choices?.[0]?.message?.content || '').trim();
+    if (raw) {
+      return { success: true, text };
+    }
+    let sql = text.replace(/```sql\n?/gi, '').replace(/```\n?/g, '').trim();
     return { success: true, sql };
   } catch (e) {
     return { success: false, error: e.message };

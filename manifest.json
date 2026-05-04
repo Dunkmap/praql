@@ -36,6 +36,12 @@
       "matches": ["*://*.leetcode.com/*"],
       "js": ["sql_engine/clause_taxonomy.js", "leetcode_content.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["*://*.leetcode.com/*"],
+      "js": ["leetcode_main_world.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
     }
   ],
   "content_security_policy": {
