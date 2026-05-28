@@ -565,6 +565,7 @@ body::before {
 .feature-card:nth-child(3) .feature-icon { animation-delay:0.8s; }
 .feature-card:nth-child(4) .feature-icon { animation-delay:1.2s; }
 .feature-card:nth-child(5) .feature-icon { animation-delay:1.6s; }
+.feature-card:nth-child(6) .feature-icon { animation-delay:2.0s; }
 
 /* Hover: 3D tilt + glow */
 .feature-icon:hover,
@@ -628,10 +629,10 @@ body::before {
 @keyframes slideIn { from{transform:translateX(-20px);opacity:0} to{transform:translateX(0);opacity:1} }
 
 @keyframes iconFloat {
-  0%, 100% { transform:translateY(0) rotateY(0) rotateX(0); }
-  25% { transform:translateY(-5px) rotateY(3deg) rotateX(-2deg); }
-  50% { transform:translateY(-8px) rotateY(-2deg) rotateX(3deg); }
-  75% { transform:translateY(-3px) rotateY(4deg) rotateX(-1deg); }
+  0%, 100% { transform:translateZ(20px) translateY(0) rotateY(0) rotateX(0); }
+  25% { transform:translateZ(20px) translateY(-5px) rotateY(3deg) rotateX(-2deg); }
+  50% { transform:translateZ(20px) translateY(-8px) rotateY(-2deg) rotateX(3deg); }
+  75% { transform:translateZ(20px) translateY(-3px) rotateY(4deg) rotateX(-1deg); }
 }
 
 @keyframes iconPulse {
@@ -703,8 +704,8 @@ body::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.5em;
-  height: 1.5em;
+  width: 64px;
+  height: 64px;
   line-height: 1;
   overflow: visible !important;
   animation: iconFloat 4s ease-in-out infinite;

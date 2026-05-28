@@ -25,25 +25,6 @@ export function renderLanding() {
       </div>
     </section>
 
-    <!-- Profile Bar -->
-    <section class="profile-bar" id="profile-bar">
-      <div class="profile-bar-inner">
-        <div class="profile-3d-emojis" id="profile-3d-emojis">
-          <div class="emoji-3d" id="avatar-toggle-box" data-idx="${savedEmoji}" title="Click to toggle SQL Master Avatar">
-            <div class="emoji-3d-body">
-              ${getEmojiSvg(savedEmoji)}
-            </div>
-          </div>
-        </div>
-        <div class="profile-name-section">
-          <div class="profile-greeting" id="profile-greeting">${greeting}</div>
-          <div class="profile-input-row">
-            <input type="text" id="profile-name-input" class="profile-name-input" placeholder="Enter your name..." value="${escapeHtml(savedName)}" maxlength="30" autocomplete="off" spellcheck="false">
-            <button class="btn btn-primary profile-save-btn" id="profile-save-btn">Save</button>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- Features Grid -->
     <section class="features-section">
@@ -66,13 +47,18 @@ export function renderLanding() {
         </div>
         <div class="feature-card">
           <div class="feature-icon"></div>
-          <h3>Data Studio</h3>
-          <p>Upload CSV or Excel files and query your own data with SQL instantly.</p>
+          <h3>Data Detective</h3>
+          <p>Solve mysteries and real-world cases using your SQL skills and deduction.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon"></div>
-          <h3>Progress Tracking</h3>
-          <p>Daily challenges, streaks, speed stats, clause mastery, and weak area analysis.</p>
+          <h3>Bug Squasher</h3>
+          <p>Race against the clock to fix broken SQL queries in this fast-paced game.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"></div>
+          <h3>LeetCode Prep</h3>
+          <p>Tackle technical interview questions with built-in test cases and validation.</p>
         </div>
       </div>
     </section>

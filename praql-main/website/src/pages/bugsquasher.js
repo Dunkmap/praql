@@ -146,6 +146,7 @@ export function renderBugsquasher() {
                 <path d="M30 28Q32 30 34 28" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round" />
               </svg>
             </div>
+            <div id="stat-fix-bugs-val" style="font-size:1.4rem;font-weight:900;color:var(--text-primary);margin-bottom:2px;text-align:center;">0</div>
             <div class="game-stat-label">Fix Bugs</div>
           </div>
         </div>
@@ -183,6 +184,7 @@ export function renderBugsquasher() {
                 <circle cx="32" cy="36" r="1.5" fill="#f43f5e" />
               </svg>
             </div>
+            <div id="stat-timed-val" style="font-size:1.4rem;font-weight:900;color:var(--text-primary);margin-bottom:2px;text-align:center;">-</div>
             <div class="game-stat-label">Timed</div>
           </div>
         </div>
@@ -213,6 +215,7 @@ export function renderBugsquasher() {
                 <circle cx="46" cy="14" r="2.5" fill="#facc15" />
               </svg>
             </div>
+            <div id="stat-streaks-val" style="font-size:1.4rem;font-weight:900;color:var(--text-primary);margin-bottom:2px;text-align:center;">0</div>
             <div class="game-stat-label">Streaks</div>
           </div>
         </div>
@@ -326,6 +329,19 @@ function showGameHighscore() {
   const hs = parseInt(localStorage.getItem(GAME_HS_KEY) || '0');
   const el = document.getElementById('game-highscore');
   if (el) el.textContent = hs > 0 ? ' High Score: ' + hs + ' pts' : '';
+  
+  // Update stats
+  const fixEl = document.getElementById('stat-fix-bugs-val');
+  const timedEl = document.getElementById('stat-timed-val');
+  const streakEl = document.getElementById('stat-streaks-val');
+  
+  if (fixEl) fixEl.textContent = localStorage.getItem('pg_bug_fixed') || '0';
+  if (streakEl) streakEl.textContent = localStorage.getItem('pg_bug_max_streak') || '0';
+  
+  if (timedEl) {
+    const fastest = localStorage.getItem('pg_bug_fastest');
+    timedEl.textContent = fastest ? fastest + 's' : '-';
+  }
 }
 
 function startBugGame() {
@@ -423,6 +439,25 @@ function submitBugFix() {
     const points = diffBonus + timeBonus + streakBonus;
     gameState.score += points;
     gameState.correct++;
+    
+    // Update permanent stats
+    let bugsFixed = parseInt(localStorage.getItem('pg_bug_fixed') || '0') + 1;
+    localStorage.setItem('pg_bug_fixed', bugsFixed);
+    
+    let maxStreak = parseInt(localStorage.getItem('pg_bug_max_streak') || '0');
+    if (gameState.streak > maxStreak) {
+      localStorage.setItem('pg_bug_max_streak', gameState.streak);
+    }
+    
+    const totalTime = p.diff === 'easy' ? 20 : p.diff === 'medium' ? 30 : 40;
+    const timeTaken = totalTime - gameState.timeLeft;
+    let fastest = parseInt(localStorage.getItem('pg_bug_fastest') || '999');
+    if (timeTaken < fastest) {
+      localStorage.setItem('pg_bug_fastest', timeTaken);
+    }
+    
+    showGameHighscore(); // Refresh UI
+    
     feedbackHTML = '<div style="padding:12px 18px;background:var(--accent-green-light);border:1.5px solid var(--accent-green-border);border-radius:var(--radius-sm);"><span style="font-weight:800;color:var(--accent-green-dark);font-size:.88rem;"> +' + points + ' pts' + (streakBonus ? ' ( streak +' + streakBonus + ')' : '') + '</span></div>';
   } else {
     gameState.streak = 0;
