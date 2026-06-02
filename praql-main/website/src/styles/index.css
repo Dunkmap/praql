@@ -302,6 +302,7 @@ body::before {
   border:none; border-radius:var(--radius-md); padding:12px 24px;
   cursor:pointer; display:inline-flex; align-items:center; gap:8px;
   transition:all var(--transition); text-transform:uppercase; letter-spacing:0.5px;
+  text-decoration:none;
 }
 .btn-primary {
   background:var(--accent-green-light); color:var(--accent-green-dark);
