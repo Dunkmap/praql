@@ -50,13 +50,70 @@ export function renderAi() {
 }
 
 export function initAi() {
-  apiKey = localStorage.getItem('sqlmaster_groq_key') || '';
+  // ── 1. Use sessionStorage (clears when tab/browser closes) ──────────────
+  apiKey = sessionStorage.getItem('sqlmaster_groq_key') || '';
   const keyInput = document.getElementById('api-key-input');
   if (keyInput && apiKey) keyInput.value = '••••••••••••';
 
+  // ── 2. Security warning banner — always visible ──────────────────────────
+  const securityBanner = document.createElement('div');
+  securityBanner.id = 'api-security-banner';
+  securityBanner.style.cssText = `
+    display:flex; align-items:flex-start; gap:12px;
+    background:linear-gradient(135deg,#fff8e1,#fff3cd);
+    border:1.5px solid #f59e0b;
+    border-radius:12px; padding:14px 18px; margin-bottom:20px;
+    font-size:0.82rem; color:#78350f; line-height:1.6;
+  `;
+  securityBanner.innerHTML = `
+    <span style="font-size:1.4rem;flex-shrink:0;">⚠️</span>
+    <div>
+      <strong style="display:block;margin-bottom:4px;font-size:0.88rem;">Security Notice</strong>
+      Your Groq API key is stored only for <strong>this browser session</strong> — it will be cleared automatically when you close this tab.
+      Never share your API key with anyone. Do not use this on a public or shared computer.
+    </div>
+  `;
+
+  // Insert banner before the first card
+  const firstCard = document.querySelector('.card');
+  if (firstCard) firstCard.parentNode.insertBefore(securityBanner, firstCard);
+
+  // ── 3. "No API key" notice — shown when key is missing ───────────────────
+  function updateKeyNotice() {
+    let notice = document.getElementById('api-key-notice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'api-key-notice';
+      notice.style.cssText = `
+        display:flex; align-items:center; gap:12px;
+        background:linear-gradient(135deg,#fef2f2,#fee2e2);
+        border:1.5px solid #f87171;
+        border-radius:12px; padding:14px 18px; margin-bottom:20px;
+        font-size:0.85rem; color:#991b1b; font-weight:600;
+      `;
+      notice.innerHTML = `
+        <span style="font-size:1.3rem;">🔑</span>
+        <span>No API key detected. Please paste your <strong>Groq API key</strong> above and click <strong>Save</strong> to use the AI SQL Assistant.</span>
+      `;
+      const outputDiv = document.getElementById('ai-output');
+      if (outputDiv) outputDiv.before(notice);
+    }
+    notice.style.display = apiKey ? 'none' : 'flex';
+  }
+
+  updateKeyNotice();
+
+  // ── Save key handler ─────────────────────────────────────────────────────
   document.getElementById('save-key-btn')?.addEventListener('click', () => {
     const val = document.getElementById('api-key-input')?.value.trim();
-    if (val && !val.startsWith('••')) { apiKey = val; localStorage.setItem('sqlmaster_groq_key', val); alert('Key saved!'); }
+    if (val && !val.startsWith('••')) {
+      apiKey = val;
+      // 1. sessionStorage only — NOT localStorage
+      sessionStorage.setItem('sqlmaster_groq_key', val);
+      // 2. Never log the key
+      updateKeyNotice();
+      alert('✅ API Key saved for this session! It will be cleared when you close this tab.');
+    }
   });
 
   let selectedDs = 'employees';
@@ -71,14 +128,22 @@ export function initAi() {
   document.getElementById('ai-generate-btn')?.addEventListener('click', async () => {
     const prompt = document.getElementById('ai-prompt')?.value.trim();
     if (!prompt) return alert('Please describe what you want.');
-    if (!apiKey) return alert('Please set your Groq API key first.');
+
+    // 3. Always alert user if no key set
+    if (!apiKey) {
+      alert('🔑 No API key found!\n\nPlease paste your Groq API key in the field above and click Save before generating SQL.\n\nGet a free key at: https://console.groq.com');
+      document.getElementById('api-key-input')?.focus();
+      return;
+    }
 
     const outputDiv = document.getElementById('ai-output');
     outputDiv.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);"> Generating...</div>';
 
     try {
       const schemaResult = sqlEngine.exec(`PRAGMA table_info(${selectedDs})`);
-      const columns = schemaResult.success && schemaResult.results?.length > 0 ? schemaResult.results[0].values.map(v => `${v[1]} (${v[2]})`).join(', ') : '';
+      const columns = schemaResult.success && schemaResult.results?.length > 0
+        ? schemaResult.results[0].values.map(v => `${v[1]} (${v[2]})`).join(', ')
+        : '';
 
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -93,8 +158,21 @@ export function initAi() {
         })
       });
 
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        const msg = errData.error?.message || `HTTP ${response.status}`;
+        if (response.status === 401) {
+          apiKey = '';
+          sessionStorage.removeItem('sqlmaster_groq_key');
+          updateKeyNotice();
+          throw new Error('Invalid API key. Please re-enter your Groq key and save again.');
+        }
+        throw new Error(msg);
+      }
+
       const data = await response.json();
-      const sql = data.choices?.[0]?.message?.content?.trim().replace(/```sql\n?/g, '').replace(/```/g, '').trim();
+      const sql = data.choices?.[0]?.message?.content?.trim()
+        .replace(/```sql\n?/g, '').replace(/```/g, '').trim();
 
       if (sql) {
         outputDiv.innerHTML = `<div class="feedback feedback-success"><span class="feedback-icon"></span><span>SQL generated successfully!</span></div>`;
@@ -112,7 +190,9 @@ export function initAi() {
     const resDiv = document.getElementById('ai-result');
     if (!query || !resDiv) return;
     const result = sqlEngine.exec(query);
-    resDiv.innerHTML = result.success ? sqlEngine.renderResults(result.results) : `<div class="feedback feedback-error"><span class="feedback-icon"></span><span>${escapeHtml(result.error)}</span></div>`;
+    resDiv.innerHTML = result.success
+      ? sqlEngine.renderResults(result.results)
+      : `<div class="feedback feedback-error"><span class="feedback-icon"></span><span>${escapeHtml(result.error)}</span></div>`;
   });
 
   setTimeout(setupSyntaxHighlighting, 100);
