@@ -72,6 +72,8 @@ router
   .on('/detective', () => loadPage('detective'))
   .on('/leetcode', () => loadPage('leetcode'))
   .on('/studio', () => loadPage('studio'))
+  .on('/ai', () => loadPage('ai'))
+  .on('/challenges', () => loadPage('challenges'))
   .on('/progress', () => loadPage('progress'));
 
 router.start();

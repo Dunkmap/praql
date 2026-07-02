@@ -21,6 +21,8 @@ export function renderNavbar() {
       <a class="nav-link" href="#/bugsquasher"><span class="nav-link-inner"><span class="nav-icon"></span> Bug Squasher</span></a>
       <a class="nav-link" href="#/detective"><span class="nav-link-inner"><span class="nav-icon"></span> Detective</span></a>
       <a class="nav-link" href="#/leetcode"><span class="nav-link-inner"><span class="nav-icon"></span> LeetCode</span></a>
+      <a class="nav-link" href="#/ai"><span class="nav-link-inner"><span class="nav-icon"></span> AI Assistant</span></a>
+      <a class="nav-link" href="#/challenges"><span class="nav-link-inner"><span class="nav-icon"></span> Challenges</span></a>
       <a class="nav-link" href="#/progress"><span class="nav-link-inner"><span class="nav-icon"></span> Progress</span></a>
       <label class="switch" id="theme-toggle-btn" title="Toggle theme">
         <input id="theme-checkbox" type="checkbox" />
