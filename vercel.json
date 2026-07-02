@@ -1,0 +1,8 @@
+{
+  "installCommand": "cd praql-main/website && npm install",
+  "buildCommand": "cd praql-main/website && npm run build",
+  "outputDirectory": "praql-main/website/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
