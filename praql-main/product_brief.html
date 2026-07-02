@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL Master — Product Brief</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4; margin: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif; color: #1a202c; background: #ffffff;
+      width: 210mm; min-height: 297mm; max-height: 297mm; overflow: hidden; margin: 0 auto;
+    }
+    .page { width: 210mm; height: 297mm; padding: 18mm 20mm 14mm 20mm; position: relative; overflow: hidden; }
+
+    /* HEADER */
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; padding-bottom: 8px; border-bottom: 2.5px solid #b86a7c; }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { width: 32px; height: 32px; }
+    .brand-name { font-size: 20px; font-weight: 900; color: #b86a7c; letter-spacing: -0.8px; }
+    .header-right { text-align: right; }
+    .header-category { font-size: 9.5px; font-weight: 700; color: #718096; letter-spacing: 1.5px; text-transform: uppercase; }
+    .header-format { font-size: 8.5px; color: #a0aec0; font-weight: 600; margin-top: 1px; }
+
+    /* HERO */
+    .hero { margin-bottom: 10px; }
+    .hero-tagline { font-size: 15px; font-weight: 800; color: #1a202c; letter-spacing: -0.3px; line-height: 1.3; }
+    .hero-tagline em { color: #b86a7c; font-style: normal; }
+    .hero-sub { font-size: 9.5px; color: #4a5568; margin-top: 4px; line-height: 1.5; font-weight: 500; }
+
+    /* SECTIONS */
+    .section-title { font-size: 9px; font-weight: 800; color: #b86a7c; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+    .section-title::before { content: ''; display: inline-block; width: 3px; height: 10px; background: #b86a7c; border-radius: 2px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 10px; }
+
+    /* BOXES */
+    .problem-box { background: #fef5f3; border-left: 3px solid #e88fa0; border-radius: 0 7px 7px 0; padding: 8px 10px; }
+    .solution-box { background: #f0fdf4; border-left: 3px solid #86efac; border-radius: 0 7px 7px 0; padding: 8px 10px; }
+    .problem-box p, .solution-box p { font-size: 9px; line-height: 1.5; color: #4a5568; font-weight: 500; }
+    .problem-box strong { color: #1a202c; font-weight: 700; }
+    .solution-box strong { color: #15803d; font-weight: 700; }
+    .stat-inline { font-weight: 800; color: #b86a7c; }
+
+    /* FEATURES */
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 10px; }
+    .feature-card { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 6px; padding: 7px 9px; }
+    .feature-icon { font-size: 12px; margin-bottom: 2px; display: block; }
+    .feature-name { font-size: 9px; font-weight: 800; color: #1a202c; margin-bottom: 2px; }
+    .feature-desc { font-size: 8px; color: #718096; line-height: 1.4; font-weight: 500; }
+
+    /* FLOW */
+    .how-it-works { margin-bottom: 9px; }
+    .flow-steps { display: flex; align-items: center; gap: 0; justify-content: center; }
+    .flow-step { text-align: center; flex: 1; }
+    .flow-num { width: 18px; height: 18px; background: linear-gradient(135deg, #b86a7c, #d48a9c); color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; margin-bottom: 2px; }
+    .flow-label { font-size: 8px; font-weight: 700; color: #32475b; display: block; }
+    .flow-sub { font-size: 7px; color: #a0aec0; font-weight: 500; }
+    .flow-arrow { color: #d4d4d4; font-size: 13px; font-weight: 300; padding: 0 1px; margin-top: -8px; }
+
+    .section-divider { border: none; border-top: 1.5px dashed #e2e8f0; margin: 8px 0; }
+
+    /* ===== BUSINESS PLAN ===== */
+    .biz-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 7px; }
+
+    /* Pricing Table */
+    .pricing-table { width: 100%; border-collapse: collapse; font-size: 8.5px; margin-bottom: 4px; }
+    .pricing-table th { background: #f7f7f7; font-weight: 800; text-align: left; padding: 4px 6px; color: #4a5568; border-bottom: 1.5px solid #e2e8f0; font-size: 7px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .pricing-table td { padding: 5px 6px; border-bottom: 1px solid #f0f0f0; color: #4a5568; font-weight: 500; vertical-align: top; line-height: 1.4; }
+    .pricing-table tr:last-child td { border-bottom: none; }
+    .tier-green { background: #f0fdf4; }
+    .tier-green td:first-child { font-weight: 800; color: #15803d; }
+    .tier-amber { background: #fffbeb; }
+    .tier-amber td:first-child { font-weight: 800; color: #b45309; }
+    .tier-purple { background: #faf5ff; }
+    .tier-purple td:first-child { font-weight: 800; color: #7e22ce; }
+    .tier-blue { background: #eff6ff; }
+    .tier-blue td:first-child { font-weight: 800; color: #1d4ed8; }
+    .tier-pink { background: #fef5f3; }
+    .tier-pink td:first-child { font-weight: 800; color: #b86a7c; }
+    .price-tag { font-weight: 900; font-size: 9px; color: #1a202c; }
+    .price-free { color: #15803d; }
+    .price-paid { color: #b45309; }
+
+    /* Revenue bars */
+    .stream-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+    .stream-icon { font-size: 10px; flex-shrink: 0; }
+    .stream-bar-container { flex: 1; height: 14px; background: #f5f5f5; border-radius: 4px; overflow: hidden; }
+    .stream-bar { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 5px; }
+    .stream-label { font-size: 7px; font-weight: 800; color: white; white-space: nowrap; text-shadow: 0 0 2px rgba(0,0,0,0.25); }
+    .stream-pct { font-size: 7.5px; font-weight: 800; color: #4a5568; width: 28px; text-align: right; flex-shrink: 0; }
+
+    /* Revenue projection */
+    .rev-timeline { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 5px; }
+    .rev-phase { border-radius: 6px; padding: 6px 7px; text-align: center; }
+    .rev-phase-label { font-size: 7px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 1px; }
+    .rev-phase-num { font-size: 14px; font-weight: 900; letter-spacing: -0.5px; }
+    .rev-phase-sub { font-size: 6.5px; font-weight: 600; margin-top: 1px; line-height: 1.3; }
+    .phase-1 { background: #fef3c7; } .phase-1 .rev-phase-label { color: #92400e; } .phase-1 .rev-phase-num { color: #b45309; } .phase-1 .rev-phase-sub { color: #a16207; }
+    .phase-2 { background: #fce7f3; } .phase-2 .rev-phase-label { color: #9d174d; } .phase-2 .rev-phase-num { color: #be185d; } .phase-2 .rev-phase-sub { color: #9d174d; }
+    .phase-3 { background: #d1fae5; } .phase-3 .rev-phase-label { color: #065f46; } .phase-3 .rev-phase-num { color: #059669; } .phase-3 .rev-phase-sub { color: #065f46; }
+
+    /* Milestones */
+    .milestone-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 5px; }
+    .milestone-card { border-radius: 5px; padding: 5px 4px; text-align: center; border: 1px solid; }
+    .milestone-month { font-size: 7px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 2px; }
+    .milestone-text { font-size: 7px; font-weight: 600; line-height: 1.3; }
+
+    /* Summary box */
+    .summary-box { background: #fafafa; border: 1px solid #eee; border-radius: 5px; padding: 5px 8px; font-size: 7.5px; color: #4a5568; font-weight: 600; line-height: 1.4; margin-bottom: 5px; }
+    .summary-box strong { color: #b86a7c; }
+
+    /* Biz items */
+    .biz-item { display: flex; align-items: baseline; gap: 5px; margin-bottom: 2px; }
+    .biz-bullet { width: 4px; height: 4px; background: #b86a7c; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+    .biz-text { font-size: 8.5px; color: #4a5568; font-weight: 500; line-height: 1.4; }
+    .biz-text strong { font-weight: 700; color: #1a202c; }
+
+    /* Target customers */
+    .customer-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; }
+    .customer-card { border-radius: 6px; padding: 5px 8px; }
+    .customer-title { font-size: 8.5px; font-weight: 800; margin-bottom: 2px; }
+    .customer-desc { font-size: 7.5px; color: #4a5568; font-weight: 500; line-height: 1.35; }
+
+    /* FOOTER */
+    .footer { display: flex; justify-content: space-between; align-items: center; padding-top: 6px; border-top: 1.5px solid #e2e8f0; }
+    .footer-left { font-size: 8px; color: #a0aec0; font-weight: 600; }
+    .footer-right { display: flex; gap: 12px; }
+    .footer-tag { font-size: 7.5px; font-weight: 700; color: #718096; background: #f7f7f7; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.3px; }
+
+    @media print { body { width: 210mm; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .page { page-break-after: avoid; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="header-left">
+        <svg class="logo-icon" viewBox="0 0 60 60">
+          <path d="M10,40 Q30,50 50,40 L50,48 Q30,58 10,48 Z" fill="#b9e7fa" stroke="#2d3748" stroke-width="2.5"/>
+          <path d="M10,30 Q30,40 50,30 L50,38 Q30,48 10,38 Z" fill="#fbdcd9" stroke="#2d3748" stroke-width="2.5"/>
+          <path d="M10,20 Q30,30 50,20 L50,28 Q30,38 10,28 Z" fill="#d0f0fd" stroke="#2d3748" stroke-width="2.5"/>
+          <path d="M10,20 Q30,10 50,20 Q30,30 10,20 Z" fill="#e7f6fe" stroke="#2d3748" stroke-width="2.5"/>
+        </svg>
+        <span class="brand-name">SQL Master</span>
+      </div>
+      <div class="header-right">
+        <div class="header-category">Product Brief</div>
+        <div class="header-format">Chrome Extension · Freemium · v1.1</div>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-tagline">The browser-native SQL school that <em>lives where you already work</em>.</div>
+      <div class="hero-sub">
+        SQL Master is a Chrome extension that turns every browser tab into an interactive SQL learning environment — with a built-in database engine, 130+ practice questions, AI-powered query generation, Google Sheets integration, and a LeetCode problem vault — all running locally, with zero setup and zero accounts.
+      </div>
+    </div>
+
+    <!-- PROBLEM / SOLUTION -->
+    <div class="two-col">
+      <div>
+        <div class="section-title">The Problem</div>
+        <div class="problem-box">
+          <p><strong>SQL is the #1 skill gap in data hiring.</strong> Over <span class="stat-inline">67%</span> of data job postings require SQL, yet most tools force learners onto new platforms, demand cloud setup, or paywall practice beyond trivial exercises. Beginners abandon courses at <span class="stat-inline">87%</span> rates. Professionals cycle between LeetCode, YouTube, and disconnected notebooks — with no continuity and no way to practice on their own data.</p>
+        </div>
+      </div>
+      <div>
+        <div class="section-title">Our Insight</div>
+        <div class="solution-box">
+          <p><strong>Learning SQL should feel like using SQL.</strong> By embedding a complete SQL environment (engine, datasets, lessons, AI) directly inside the browser, we collapse the gap between "studying" and "doing" to zero. <strong>No tabs to switch. No setup. No excuses.</strong> The browser becomes their classroom, IDE, and interview prep coach — all at once. Zero infrastructure cost for us, maximum convenience for them.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CORE CAPABILITIES -->
+    <div class="section-title">Core Capabilities — Six Modules, One Extension</div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <span class="feature-icon">📚</span>
+        <div class="feature-name">Learning Path</div>
+        <div class="feature-desc">Structured curriculum across 8 categories (DDL, DML, Joins, Aggregations, Subqueries, Window Functions) with interactive examples on real datasets.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🎯</span>
+        <div class="feature-name">Practice Lab</div>
+        <div class="feature-desc">130+ graded challenges (Easy → Hard) with instant SQL validation via in-browser SQLite (WASM), schema preview, streaks, and clause mastery.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🏆</span>
+        <div class="feature-name">AI Challenges</div>
+        <div class="feature-desc">Upload any dataset (.csv/.sql), paste questions from ChatGPT/Gemini/Claude, solve in progressive unlock format with AI prompt generator.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">✨</span>
+        <div class="feature-name">AI SQL Assistant</div>
+        <div class="feature-desc">Natural language → SQL powered by Groq API (free). Upload files, get syntax-highlighted queries with explanations, edit and run in-browser.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">🧠</span>
+        <div class="feature-name">LeetCode Vault</div>
+        <div class="feature-desc">Auto-captures SQL problems from LeetCode, stores with AI-generated solutions. Autofill feature writes solutions directly into LeetCode editor.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-icon">📊</span>
+        <div class="feature-name">Sheets SQL</div>
+        <div class="feature-desc">Injects a SQL panel into Google Sheets, letting analysts query spreadsheet data with real SQL. Bridges spreadsheet users and database thinking.</div>
+      </div>
+    </div>
+
+    <!-- USER JOURNEY -->
+    <div class="how-it-works">
+      <div class="section-title">User Journey</div>
+      <div class="flow-steps">
+        <div class="flow-step"><div class="flow-num">1</div><span class="flow-label">Install Free</span><span class="flow-sub">Chrome Web Store</span></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step"><div class="flow-num">2</div><span class="flow-label">Learn + Practice</span><span class="flow-sub">Easy & Medium free</span></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step"><div class="flow-num">3</div><span class="flow-label">Hit the Wall</span><span class="flow-sub">Hard Qs / Sheets / Autofill</span></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step"><div class="flow-num">4</div><span class="flow-label">Unlock Premium</span><span class="flow-sub">₹100–₹500 one-time</span></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-step"><div class="flow-num">5</div><span class="flow-label">Master & Share</span><span class="flow-sub">Refer friends, grow</span></div>
+      </div>
+    </div>
+
+    <!-- ==================== BUSINESS PLAN ==================== -->
+    <hr class="section-divider">
+
+    <!-- ROW 1: Pricing + Revenue Streams -->
+    <div class="biz-grid">
+      <!-- LEFT: Pricing Model -->
+      <div>
+        <div class="section-title">Revenue Model — What Users Pay</div>
+        <table class="pricing-table">
+          <thead>
+            <tr>
+              <th style="width:25%;">Feature</th>
+              <th style="width:18%;">Price</th>
+              <th>What User Gets</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="tier-green">
+              <td>🟢 Free Tier</td>
+              <td><span class="price-tag price-free">₹0</span></td>
+              <td>All learning modules, all Easy + Medium practice questions (100+ Qs), AI SQL assistant, progress tracking, daily quests</td>
+            </tr>
+            <tr class="tier-amber">
+              <td>🔥 Hard Questions</td>
+              <td><span class="price-tag price-paid">₹500</span> once</td>
+              <td>Unlock all Hard-level challenges permanently. Includes 30+ advanced questions (Subqueries, Window Functions, CTEs, Complex Joins)</td>
+            </tr>
+            <tr class="tier-purple">
+              <td>🧠 LeetCode Autofill</td>
+              <td><span class="price-tag price-paid">₹100</span> once</td>
+              <td>Lifetime access to AI-powered autofill — auto-generates Intuition, Approach, Complexity + code and injects directly into LeetCode editor</td>
+            </tr>
+            <tr class="tier-blue">
+              <td>📊 Sheets SQL</td>
+              <td><span class="price-tag price-paid">₹100</span> once</td>
+              <td>Lifetime access to the Google Sheets SQL panel — run real SQL queries on any spreadsheet data, export results</td>
+            </tr>
+            <tr class="tier-pink">
+              <td>📺 Ad Revenue</td>
+              <td><span class="price-tag" style="color:#b86a7c;">Passive</span></td>
+              <td>Non-intrusive ads shown at two high-intent moments: when users attempt Hard questions (pre-unlock) and when uploading custom datasets</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="font-size: 7.5px; color: #718096; font-weight: 600; line-height: 1.35; margin-top: 1px;">
+          <strong style="color:#4a5568;">Why one-time pricing wins:</strong> Indian users resist subscriptions. One-time payments feel like "buying a tool" — higher conversion rates, zero churn, and users become permanent advocates. All payments via Razorpay (low 2% fee).
+        </div>
+      </div>
+
+      <!-- RIGHT: Business Case — Why This Product Deserves to Exist -->
+      <div>
+        <div class="section-title">The Market Reality</div>
+        <div style="font-size: 8.5px; color: #4a5568; font-weight: 500; line-height: 1.5; margin-bottom: 4px;">
+          The global SQL training market is valued at <strong style="color:#1a202c;">$4.2B (2025)</strong> and growing at 14% CAGR. In India alone, <strong style="color:#b86a7c;">1.5M+ students</strong> graduate from CS programs annually — most with zero hands-on SQL experience. LinkedIn reports SQL as the <strong style="color:#1a202c;">#1 most-requested technical skill</strong> across data analyst, BI, and backend roles worldwide. Yet the top tools — DataCamp ($25/mo), LeetCode Premium ($13/mo), Mode Analytics — all demand subscriptions, cloud setup, or both. The result: <strong style="color:#b86a7c;">87% of learners quit</strong> before writing 50 queries.
+        </div>
+
+        <div style="font-size: 7.5px; font-weight: 800; color: #b86a7c; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 3px; display: flex; align-items: center; gap: 4px;">
+          <span style="display:inline-block; width:3px; height:9px; background:#b86a7c; border-radius:2px;"></span>
+          Why SQL Master Deserves to Exist
+        </div>
+        <div style="font-size: 8px; color: #4a5568; font-weight: 500; line-height: 1.5; margin-bottom: 5px;">
+          Every SQL tool today asks learners to <strong style="color:#1a202c;">leave their context</strong> — open a new platform, create an account, configure a server. SQL Master inverts the model: <strong style="color:#b86a7c;">the entire classroom lives inside the browser they already use.</strong> A full SQL engine (WebAssembly SQLite), 130+ graded problems, AI tutor, LeetCode integration, and Google Sheets querying — offline, zero-config, zero-account. No competitor offers this combination at any price, let alone free. It's not a feature — it's a <strong style="color:#1a202c;">category of one.</strong>
+        </div>
+
+        <div style="font-size: 7.5px; font-weight: 800; color: #b86a7c; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 3px; display: flex; align-items: center; gap: 4px;">
+          <span style="display:inline-block; width:3px; height:9px; background:#b86a7c; border-radius:2px;"></span>
+          Who We're Building For
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 5px;">
+          <div style="background:#fef5f3; border-radius: 5px; padding: 4px 6px;">
+            <div style="font-size: 7.5px; font-weight: 800; color: #b86a7c; margin-bottom: 1px;">🎓 CS Students (60%)</div>
+            <div style="font-size: 7px; color: #4a5568; font-weight: 500; line-height: 1.35;">Placement prep for TCS/Infosys/product companies. Need structured practice, not theory. <strong>Will pay ₹500</strong> to unlock Hard questions before interview season.</div>
+          </div>
+          <div style="background:#eff6ff; border-radius: 5px; padding: 4px 6px;">
+            <div style="font-size: 7.5px; font-weight: 800; color: #3b82f6; margin-bottom: 1px;">🔄 Career Switchers (25%)</div>
+            <div style="font-size: 7px; color: #4a5568; font-weight: 500; line-height: 1.35;">MBAs, Excel analysts pivoting to data roles. Google Sheets SQL is their gateway drug into database thinking. <strong>Will pay ₹100</strong> for Sheets SQL.</div>
+          </div>
+          <div style="background:#f0fdf4; border-radius: 5px; padding: 4px 6px;">
+            <div style="font-size: 7.5px; font-weight: 800; color: #15803d; margin-bottom: 1px;">⚡ LeetCode Grinders (15%)</div>
+            <div style="font-size: 7px; color: #4a5568; font-weight: 500; line-height: 1.35;">Already solving 2–3 SQL problems/day. Vault + Autofill saves 15 min per problem. <strong>Will pay ₹100</strong> for competitive edge.</div>
+          </div>
+        </div>
+
+        <div style="font-size: 7.5px; font-weight: 800; color: #b86a7c; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 3px; display: flex; align-items: center; gap: 4px;">
+          <span style="display:inline-block; width:3px; height:9px; background:#b86a7c; border-radius:2px;"></span>
+          Revenue Stream Breakdown (Month 6)
+        </div>
+        <!-- Revenue stream bars -->
+        <div style="margin-bottom: 3px;">
+          <div class="stream-row">
+            <span class="stream-icon">🔥</span>
+            <div class="stream-bar-container"><div class="stream-bar" style="width:42%; background: linear-gradient(90deg, #f59e0b, #d97706);"><span class="stream-label">Hard Qs Unlock</span></div></div>
+            <span class="stream-pct">42%</span>
+          </div>
+          <div class="stream-row">
+            <span class="stream-icon">📺</span>
+            <div class="stream-bar-container"><div class="stream-bar" style="width:25%; background: linear-gradient(90deg, #b86a7c, #d48a9c);"><span class="stream-label">Ad Revenue</span></div></div>
+            <span class="stream-pct">25%</span>
+          </div>
+          <div class="stream-row">
+            <span class="stream-icon">🧠</span>
+            <div class="stream-bar-container"><div class="stream-bar" style="width:18%; background: linear-gradient(90deg, #7e22ce, #a855f7);"><span class="stream-label">LeetCode Autofill</span></div></div>
+            <span class="stream-pct">18%</span>
+          </div>
+          <div class="stream-row">
+            <span class="stream-icon">📊</span>
+            <div class="stream-bar-container"><div class="stream-bar" style="width:15%; background: linear-gradient(90deg, #2563eb, #60a5fa);"><span class="stream-label">Sheets SQL</span></div></div>
+            <span class="stream-pct">15%</span>
+          </div>
+        </div>
+        <div style="font-size: 7px; color: #718096; font-weight: 600; line-height: 1.35;">
+          <strong style="color:#4a5568;">Competitive moat:</strong> Zero marginal cost (100% client-side), zero server infrastructure, zero AI API cost (user's own free Groq key). <strong style="color:#b86a7c;">~95% profit margin</strong> from day one — a unit economics profile SaaS companies take years to achieve.
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 2: 6-Month Roadmap (full width) -->
+    <div style="margin-bottom: 7px;">
+
+      <!-- RIGHT: 6-Month Achievement Plan -->
+      <div>
+        <div class="section-title">6-Month Achievement Roadmap</div>
+        <div class="milestone-grid">
+          <div class="milestone-card" style="background:#fef3c7; border-color:#fcd34d;">
+            <div class="milestone-month" style="color:#92400e;">M1</div>
+            <div class="milestone-text" style="color:#a16207;">Publish on Chrome Store. Seed on r/learnSQL, college WhatsApp groups. Target: 200 installs.</div>
+          </div>
+          <div class="milestone-card" style="background:#fce7f3; border-color:#f9a8d4;">
+            <div class="milestone-month" style="color:#9d174d;">M2</div>
+            <div class="milestone-text" style="color:#9d174d;">Integrate ads (AdMob/Carbon). Enable Razorpay payments. First ₹5K revenue. Target: 800 installs.</div>
+          </div>
+          <div class="milestone-card" style="background:#dbeafe; border-color:#93c5fd;">
+            <div class="milestone-month" style="color:#1e40af;">M3</div>
+            <div class="milestone-text" style="color:#1e40af;">Launch on Product Hunt India. YouTube SQL tutorial collab. Get 50+ Chrome Store reviews. Target: 2K.</div>
+          </div>
+          <div class="milestone-card" style="background:#d1fae5; border-color:#6ee7b7;">
+            <div class="milestone-month" style="color:#065f46;">M4</div>
+            <div class="milestone-text" style="color:#065f46;">Partner with 3 coding bootcamps. Add referral system (refer = unlock 5 Hard Qs). Target: 3K installs.</div>
+          </div>
+          <div class="milestone-card" style="background:#faf5ff; border-color:#c4b5fd;">
+            <div class="milestone-month" style="color:#6d28d9;">M5</div>
+            <div class="milestone-text" style="color:#6d28d9;">SEO-optimized landing page. LinkedIn content campaign. 100+ Hard Q unlocks/mo. Target: 4K installs.</div>
+          </div>
+          <div class="milestone-card" style="background:#fef5f3; border-color:#fca5a5;">
+            <div class="milestone-month" style="color:#b91c1c;">M6</div>
+            <div class="milestone-text" style="color:#b91c1c;">5K active users. ₹4.9L monthly revenue. Chrome Store "Featured" pitch. Plan V2: Teams tier + certs.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GTM + TARGET CUSTOMERS -->
+    <div class="biz-grid" style="margin-bottom: 5px;">
+      <div>
+        <div class="section-title">Go-To-Market — Free Channels First</div>
+        <div class="biz-item"><div class="biz-bullet"></div><div class="biz-text"><strong>Chrome Store SEO (40%):</strong> Rank for "learn SQL", "SQL practice", "SQL playground" — 50K+ monthly searches from India alone. Zero cost acquisition.</div></div>
+        <div class="biz-item"><div class="biz-bullet"></div><div class="biz-text"><strong>Reddit + Discord (25%):</strong> r/learnSQL, r/dataengineering, r/Indian_Academia, SQL Discord servers. Free tier makes people share.</div></div>
+        <div class="biz-item"><div class="biz-bullet"></div><div class="biz-text"><strong>College WhatsApp + LinkedIn (20%):</strong> Share in placement groups. "This free extension has 130+ SQL questions" — instant virality in CS groups.</div></div>
+        <div class="biz-item"><div class="biz-bullet"></div><div class="biz-text"><strong>YouTube Collabs (15%):</strong> Partner with SQL/data YouTubers (CodeWithHarry, Krish Naik types). Extension demo = organic installs.</div></div>
+      </div>
+      <div>
+        <div class="section-title">Target Customers</div>
+        <div class="customer-grid">
+          <div class="customer-card" style="background:#fef5f3; border-left: 3px solid #b86a7c;">
+            <div class="customer-title" style="color:#b86a7c;">CS Students</div>
+            <div class="customer-desc">Final-year / placement prep. Need SQL practice for TCS, Infosys, Wipro, product company interviews.</div>
+          </div>
+          <div class="customer-card" style="background:#eff6ff; border-left: 3px solid #3b82f6;">
+            <div class="customer-title" style="color:#3b82f6;">Career Switchers</div>
+            <div class="customer-desc">Moving into data analyst / BI roles. Need structured learning + portfolio-ready practice.</div>
+          </div>
+          <div class="customer-card" style="background:#f0fdf4; border-left: 3px solid #15803d;">
+            <div class="customer-title" style="color:#15803d;">Excel Analysts</div>
+            <div class="customer-desc">Ready to graduate from VLOOKUP → JOIN. Sheets SQL is the gateway into database thinking.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="footer-left">SQL Master · v1.1 · April 2026 · github.com/Dunkmap/praql</div>
+      <div class="footer-right">
+        <span class="footer-tag">Chrome Extension</span>
+        <span class="footer-tag">WebAssembly</span>
+        <span class="footer-tag">Groq AI</span>
+        <span class="footer-tag">100% Client-Side</span>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
