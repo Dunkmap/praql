@@ -7,7 +7,6 @@ import './styles/learn.css';
 import { Router } from './router.js';
 import { renderNavbar, initNavbar } from './components/navbar.js';
 import { sqlEngine } from './engine/sql-engine.js';
-import { renderLanding, initLanding } from './pages/landing.js';
 
 // Global references
 window.sqlEngine = sqlEngine;
@@ -24,22 +23,14 @@ async function ensureEngine() {
   engineReady = true;
 }
 
-function setPage(contentHtml, initFn) {
-  app.innerHTML = renderNavbar() + `<main class="main-content" id="page-content">${contentHtml}</main>`;
-  initNavbar();
-  router.updateActiveNav();
-  if (initFn) initFn();
-  window.scrollTo(0, 0);
-}
-
-async function loadPage(pageName) {
+async function loadPage(pageName, needsEngine = true) {
   // Show loading state
-  app.innerHTML = renderNavbar() + `<main class="main-content"><div style="text-align:center;padding:80px 20px;"><div style="font-size:2rem;margin-bottom:16px;"></div><div style="color:var(--text-muted);font-weight:700;">Loading ${pageName}...</div></div></main>`;
+  app.innerHTML = renderNavbar() + `<main class="main-content"><div style="text-align:center;padding:80px 20px;"><div style="font-size:2rem;margin-bottom:16px;"></div><div style="color:var(--text-muted);font-weight:700;">Loading${pageName !== 'landing' ? ' ' + pageName : ''}...</div></div></main>`;
   initNavbar();
   router.updateActiveNav();
 
   try {
-    await ensureEngine();
+    if (needsEngine) await ensureEngine();
     const module = await import(`./pages/${pageName}.js`);
     const html = module[`render${capitalize(pageName)}`]();
     app.innerHTML = renderNavbar() + `<main class="main-content" id="page-content">${html}</main>`;
@@ -62,9 +53,7 @@ function capitalize(s) {
 
 // Routes
 router
-  .on('/', () => {
-    setPage(renderLanding(), initLanding);
-  })
+  .on('/', () => loadPage('landing', false))
   .on('/learn', () => loadPage('learn'))
   .on('/practice', () => loadPage('practice'))
   .on('/playground', () => loadPage('playground'))

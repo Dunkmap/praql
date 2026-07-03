@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# SQL Master — Learn & Practice SQL in Your Browser
+# Static data files (publicly accessible by design)
+Sitemap: https://yourdomain.com/sitemap.xml
