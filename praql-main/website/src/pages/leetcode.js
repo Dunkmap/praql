@@ -11,7 +11,7 @@ export function renderLeetcode() {
     <!-- Hero -->
     <div style="text-align:center;margin-bottom:48px;">
       <div style="font-size:4rem;margin-bottom:12px;"></div>
-      <h1 class="page-title" style="font-size:2.2rem;margin-bottom:10px;">SQL Master × LeetCode</h1>
+      <h1 class="page-title" style="font-size:2.2rem;margin-bottom:10px;">SQLens</h1>
       <p class="page-subtitle" style="max-width:520px;margin:0 auto;line-height:1.8;">
         Supercharge your LeetCode SQL workflow with our browser extension. Auto-capture problems, AI-powered solution write-ups, and seamless integration.
       </p>
