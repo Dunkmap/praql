@@ -11,7 +11,7 @@ export function renderLanding() {
     <section class="hero">
       <div class="hero-badge">100% FREE · NO SIGNUP · RUNS IN YOUR BROWSER</div>
       <h1 class="hero-title">Master SQL<br><span class="hero-accent">Without Leaving Your Browser</span></h1>
-      <p class="hero-desc">130+ practice questions, structured learning paths, a live SQL playground, and a real database engine — all running locally via WebAssembly.</p>
+      <p class="hero-desc">130+ practice questions, structured learning paths, upload-your-own-data playground, and a real database engine — all running locally via WebAssembly.</p>
       <div class="hero-actions">
         <a href="#/learn" class="btn btn-primary hero-btn">Start Learning →</a>
         <a href="#/playground" class="btn btn-secondary hero-btn">Open Playground</a>
@@ -41,9 +41,9 @@ export function renderLanding() {
           <p>Easy → Hard with instant feedback, hints, and answer verification.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon"></div>
+          <div class="feature-icon">🛠️</div>
           <h3>SQL Playground</h3>
-          <p>Write any query against 5 built-in datasets. Schema viewer included.</p>
+          <p>Upload your own CSV or use built-in datasets — get instant practice questions with verified answers.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon"></div>
