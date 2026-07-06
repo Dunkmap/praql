@@ -1,138 +1,138 @@
 import { sqlEngine, escapeHtml, setupSyntaxHighlighting } from '../engine/sql-engine.js';
+import { generateQuestions, getTableSummary } from '../engine/question-generator.js';
 
-let parsedQuestions = [];
+let uploadedTables = [];
+let csvRawData = {};
+let generatedQuestions = [];
 let currentQIdx = 0;
-let csvRawData = {};  // tableName -> csvText for persistence
+let activeTab = 'upload'; // 'upload' | 'builtin'
+let activeMode = 'practice'; // 'practice' | 'freequery'
 
-const DATASETS = [
-  { value:'employees', label:' Employees' },
-  { value:'customers', label:' Customers' },
-  { value:'products',  label:' Products' },
-  { value:'orders',    label:' Orders' },
-  { value:'sales',     label:' Sales' }
+const BUILTIN_DATASETS = [
+  { value: 'employees', label: 'Employees', icon: '👥', desc: '50 employees with departments, salaries, cities', cols: 11, rows: 50 },
+  { value: 'customers', label: 'Customers', icon: '🛒', desc: 'Customer records with cities and spend amounts', cols: 5, rows: 30 },
+  { value: 'products',  label: 'Products',  icon: '📦', desc: 'Product catalog with categories and pricing', cols: 6, rows: 30 },
+  { value: 'orders',    label: 'Orders',     icon: '📋', desc: 'Order history with quantities and totals', cols: 7, rows: 40 },
+  { value: 'sales',     label: 'Sales',      icon: '💰', desc: 'Sales data with regions and revenue', cols: 6, rows: 40 },
 ];
+
+/* ══════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════ */
 
 export function renderPlayground() {
   return `
   <div class="page-header" style="display:flex;align-items:flex-end;justify-content:space-between;">
     <div>
       <h1 class="page-title">SQL Playground</h1>
-      <p class="page-subtitle">Generate AI prompts, import Q&A, and practice — all in one place.</p>
+      <p class="page-subtitle">Upload your CSV or pick a built-in dataset — get instant practice questions.</p>
     </div>
     <div style="display:flex;gap:10px;">
-      <button class="btn btn-secondary btn-sm" id="schema-btn"> Schema</button>
-      <button class="btn btn-secondary btn-sm" id="reset-db-btn">↺ Reset DB</button>
+      <button class="btn btn-secondary btn-sm" id="schema-btn">📋 Schema</button>
+      <button class="btn btn-secondary btn-sm" id="reset-all-btn">↺ Reset All</button>
     </div>
   </div>
 
-  <!-- ═══ SECTION 1: Prompt Generator ═══ -->
-  <div class="card" style="margin-bottom:24px;" id="prompt-section">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;cursor:pointer;" id="prompt-header-toggle">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:1.3rem;"></span>
-        <div>
-          <div style="font-weight:800;font-size:0.85rem;color:var(--accent-primary);letter-spacing:0.5px;">STEP 1 — GENERATE AI PROMPT</div>
-          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-top:2px;">Configure topic, questions & database, then copy the prompt into any AI chat.</div>
-        </div>
+  <!-- ═══ SECTION 1: Data Source ═══ -->
+  <div class="card" style="margin-bottom:24px;" id="data-source-section">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <span style="font-size:1.3rem;">📊</span>
+      <div>
+        <div style="font-weight:800;font-size:0.95rem;color:var(--text-primary);">Choose Your Data</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Upload a CSV file or use one of our built-in datasets</div>
       </div>
-      <span id="prompt-chevron" style="font-size:0.9rem;color:var(--text-muted);transition:transform .3s;"></span>
     </div>
-    <div id="prompt-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:14px;">
-        <div>
-          <label class="pg-label">NUMBER OF QUESTIONS</label>
-          <input type="number" id="prompt-count" min="1" max="30" value="5" class="pg-input">
-        </div>
-        <div>
-          <label class="pg-label">TOPIC</label>
-          <input type="text" id="prompt-topic" class="pg-input" placeholder="e.g. JOINs, GROUP BY, Window functions…">
-        </div>
-        <div>
-          <label class="pg-label">DATASET</label>
-          <select id="prompt-dataset" class="pg-input">${DATASETS.map(d=>`<option value="${d.value}">${d.label}</option>`).join('')}</select>
-        </div>
+
+    <!-- Tab Bar -->
+    <div class="pg-tab-bar" id="source-tabs">
+      <button class="pg-tab-btn active" data-tab="upload">📁 Upload CSV</button>
+      <button class="pg-tab-btn" data-tab="builtin">🗃️ Built-in Datasets</button>
+    </div>
+
+    <!-- Upload Tab -->
+    <div id="tab-upload" class="pg-tab-content active">
+      <div class="upload-zone" id="pg-upload-zone" style="padding:36px;margin-top:16px;">
+        <div style="font-size:2.5rem;margin-bottom:10px;">📤</div>
+        <div style="font-weight:800;font-size:1rem;color:var(--text-primary);margin-bottom:6px;">Drop your CSV files here</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);font-weight:600;">or click to browse · Max 5MB per file · Up to 10,000 rows</div>
+        <input type="file" id="pg-file-input" accept=".csv" multiple style="display:none;">
       </div>
-      <!-- Second dataset for JOINs -->
-      <div id="join-dataset-row" style="display:none;margin-bottom:18px;animation:fadeIn .3s ease;">
-        <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--accent-pink-light);border:1.5px solid var(--accent-primary);border-radius:var(--radius-md);">
-          <span style="font-size:1.1rem;"></span>
-          <div style="flex:1;">
-            <div style="font-weight:800;font-size:.75rem;color:var(--accent-primary);margin-bottom:6px;">JOIN DETECTED — Select a second dataset to join with</div>
-            <select id="prompt-dataset-2" class="pg-input" style="background:var(--bg-card);">${DATASETS.map((d,i)=>`<option value="${d.value}"${i===1?' selected':''}>${d.label}</option>`).join('')}</select>
+    </div>
+
+    <!-- Built-in Datasets Tab -->
+    <div id="tab-builtin" class="pg-tab-content" style="display:none;">
+      <div class="pg-dataset-grid" style="margin-top:16px;">
+        ${BUILTIN_DATASETS.map(ds => `
+          <div class="pg-dataset-card" data-dataset="${ds.value}" id="ds-card-${ds.value}">
+            <div class="pg-dataset-icon">${ds.icon}</div>
+            <div class="pg-dataset-info">
+              <div class="pg-dataset-name">${ds.label}</div>
+              <div class="pg-dataset-desc">${ds.desc}</div>
+              <div class="pg-dataset-meta">${ds.rows} rows · ${ds.cols} columns</div>
+            </div>
+            <div class="pg-dataset-check" id="ds-check-${ds.value}" style="display:none;">✅</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Loaded Tables Chips -->
+    <div id="pg-loaded-tables" style="display:none;margin-top:18px;">
+      <div style="font-weight:800;font-size:.72rem;color:var(--accent-green-dark);letter-spacing:1px;margin-bottom:10px;">✅ LOADED TABLES</div>
+      <div id="pg-table-chips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+
+  <!-- ═══ SECTION 2: Generate & Practice ═══ -->
+  <div id="practice-section" style="display:none;">
+    <!-- Mode Tabs -->
+    <div style="display:flex;gap:10px;margin-bottom:20px;">
+      <button class="btn btn-accent" id="mode-practice-btn" style="flex:1;">🎯 Practice Questions</button>
+      <button class="btn btn-secondary" id="mode-freequery-btn" style="flex:1;">⚡ Free Query</button>
+    </div>
+
+    <!-- ─── Practice Mode ─── -->
+    <div id="practice-mode">
+      <!-- Config Bar -->
+      <div class="card" style="margin-bottom:20px;padding:20px;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <label class="pg-label">DIFFICULTY</label>
+            <div style="display:flex;gap:6px;" id="diff-selector">
+              <button class="btn btn-sm diff-select-btn active" data-diff="mix" style="flex:1;">🎲 Mix</button>
+              <button class="btn btn-sm diff-select-btn" data-diff="easy" style="flex:1;">Easy</button>
+              <button class="btn btn-sm diff-select-btn" data-diff="medium" style="flex:1;">Medium</button>
+              <button class="btn btn-sm diff-select-btn" data-diff="hard" style="flex:1;">Hard</button>
+            </div>
+          </div>
+          <div style="min-width:120px;">
+            <label class="pg-label">QUESTIONS</label>
+            <select id="q-count-select" class="pg-input" style="padding:7px 12px;">
+              <option value="5">5 Questions</option>
+              <option value="10" selected>10 Questions</option>
+              <option value="15">15 Questions</option>
+            </select>
+          </div>
+          <div style="align-self:flex-end;">
+            <button class="btn btn-accent" id="generate-btn">🚀 Generate Questions</button>
           </div>
         </div>
       </div>
-      <button class="btn btn-accent" id="generate-prompt-btn" style="width:100%;margin-bottom:0;"> Generate Prompt</button>
 
-      <div id="prompt-output-wrap" style="display:none;margin-top:18px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <span style="font-weight:800;font-size:0.72rem;color:var(--accent-green-dark);letter-spacing:1px;"> COPY THIS INTO ANY AI CHAT (ChatGPT, Claude, Gemini…)</span>
-          <button class="btn btn-sm btn-primary" id="copy-prompt-btn"> Copy</button>
-        </div>
-        <pre id="prompt-output" style="background:var(--bg-editor);color:#a0c4ff;padding:18px;border-radius:12px;font-size:0.78rem;line-height:1.7;white-space:pre-wrap;word-wrap:break-word;max-height:320px;overflow-y:auto;border:1.5px solid #2d323a;"></pre>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ SECTION 2: Upload Dataset ═══ -->
-  <div class="card" style="margin-bottom:24px;" id="upload-section">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;cursor:pointer;" id="upload-header-toggle">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:1.3rem;"></span>
-        <div>
-          <div style="font-weight:800;font-size:0.85rem;color:var(--accent-primary);letter-spacing:0.5px;">STEP 2 — UPLOAD DATASET</div>
-          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-top:2px;">Run the AI's Python code to get the CSV, then upload it here to load into SQL engine.</div>
-        </div>
-      </div>
-      <span id="upload-chevron" style="font-size:0.9rem;color:var(--text-muted);transition:transform .3s;"></span>
-    </div>
-    <div id="upload-body">
-      <div class="upload-zone" id="pg-upload-zone" style="padding:32px;margin-bottom:0;">
-        <div style="font-size:2rem;margin-bottom:8px;"></div>
-        <div style="font-weight:800;font-size:0.95rem;color:var(--text-primary);margin-bottom:4px;">Click or drag your CSV file here</div>
-        <div style="font-size:0.78rem;color:var(--text-muted);font-weight:600;">Upload the .CSV file generated by the AI's Python script</div>
-        <input type="file" id="pg-file-input" accept=".csv" multiple style="display:none;">
-      </div>
-      <div id="pg-loaded-tables" style="display:none;margin-top:14px;">
-        <div style="font-weight:800;font-size:.72rem;color:var(--accent-green-dark);letter-spacing:1px;margin-bottom:8px;"> LOADED TABLES</div>
-        <div id="pg-table-chips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ SECTION 3: Paste Q&A ═══ -->
-  <div class="card" style="margin-bottom:24px;" id="qa-section">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;cursor:pointer;" id="qa-header-toggle">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:1.3rem;"></span>
-        <div>
-          <div style="font-weight:800;font-size:0.85rem;color:var(--accent-primary);letter-spacing:0.5px;">STEP 3 — PASTE QUESTIONS</div>
-          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-top:2px;">Paste the Q&A part from the AI response. Questions will load based on your uploaded dataset.</div>
-        </div>
-      </div>
-      <span id="qa-chevron" style="font-size:0.9rem;color:var(--text-muted);transition:transform .3s;"></span>
-    </div>
-    <div id="qa-body">
-      <textarea id="qa-input" class="pg-textarea" placeholder="Paste the Q&A section from the AI response here (all ---QUESTION--- / ---END--- blocks)..."></textarea>
-      <div style="display:flex;gap:10px;margin-top:14px;">
-        <button class="btn btn-accent" id="parse-qa-btn" style="flex:1;"> Parse & Start Practice</button>
-        <button class="btn btn-secondary" id="clear-qa-btn">Clear</button>
-      </div>
-      <div id="parse-feedback" style="margin-top:12px;"></div>
-
-      <!-- Practice zone appears inline here after parsing -->
-      <div id="practice-zone" style="display:none;margin-top:20px;">
-        <div style="padding:16px;margin-bottom:20px;background:var(--accent-pink-light);border:1.5px solid var(--accent-primary);border-radius:var(--radius-md);">
+      <!-- Questions Zone (hidden until generated) -->
+      <div id="questions-zone" style="display:none;">
+        <!-- Progress Header -->
+        <div style="padding:16px 20px;margin-bottom:20px;background:var(--accent-pink-light);border:1.5px solid var(--accent-primary);border-radius:var(--radius-md);">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div style="display:flex;align-items:center;gap:12px;">
-              <span style="font-size:1.5rem;"></span>
+              <span style="font-size:1.5rem;">🎯</span>
               <div>
                 <div style="font-weight:800;font-size:0.9rem;color:var(--accent-primary);">PRACTICE MODE</div>
                 <span id="q-progress" style="font-size:0.75rem;font-weight:700;color:var(--text-muted);"></span>
               </div>
             </div>
             <div style="display:flex;gap:8px;">
-              <button class="btn btn-sm btn-secondary" id="exit-practice-btn"> Exit</button>
+              <button class="btn btn-sm btn-secondary" id="regenerate-btn">🔄 New Set</button>
             </div>
           </div>
           <div style="width:100%;height:6px;background:rgba(255,255,255,0.5);border-radius:3px;margin-top:14px;overflow:hidden;">
@@ -155,8 +155,8 @@ export function renderPlayground() {
           <div class="editor-chrome-bar">
             <span class="editor-chrome-label">>_ YOUR_ANSWER <span style="opacity:.5;font-size:.7rem;margin-left:8px;">CTRL+ENTER</span></span>
             <div style="display:flex;gap:8px;">
-              <button class="btn btn-sm btn-secondary" id="hint-btn" style="background:rgba(178,173,213,.2);border-color:#b2add5;color:#b2add5;"> Hint</button>
-              <button class="btn btn-sm btn-accent" id="submit-answer-btn"> Run</button>
+              <button class="btn btn-sm btn-secondary" id="hint-btn" style="background:rgba(178,173,213,.2);border-color:#b2add5;color:#b2add5;">💡 Hint</button>
+              <button class="btn btn-sm btn-accent" id="submit-answer-btn">▶ Run</button>
             </div>
           </div>
           <textarea class="sql-editor" id="practice-editor" placeholder="-- Write your SQL answer here..."></textarea>
@@ -164,14 +164,14 @@ export function renderPlayground() {
 
         <!-- Your Output -->
         <div id="practice-result" style="margin-top:16px;min-height:80px;border:1.5px dashed var(--border-color);border-radius:var(--radius-md);padding:20px;color:var(--text-muted);text-align:center;">
-          <div style="font-size:1.5rem;margin-bottom:6px;"></div>
+          <div style="font-size:1.5rem;margin-bottom:6px;">⌨️</div>
           <div style="font-weight:700;font-size:.82rem;">Run your answer to check results</div>
         </div>
 
-        <!-- Expected Answer (hidden until clicked) -->
+        <!-- Expected Answer -->
         <div id="answer-reveal" style="display:none;margin-top:16px;">
           <div class="card" style="border-color:var(--accent-green-border);">
-            <div style="font-weight:800;font-size:.72rem;color:var(--accent-green-dark);letter-spacing:1px;margin-bottom:6px;"> EXPECTED SQL</div>
+            <div style="font-weight:800;font-size:.72rem;color:var(--accent-green-dark);letter-spacing:1px;margin-bottom:6px;">✅ EXPECTED SQL</div>
             <pre id="expected-sql" style="background:var(--bg-editor);color:#a0c4ff;padding:14px;border-radius:8px;font-size:.82rem;white-space:pre-wrap;border:1px solid #2d323a;"></pre>
             <div id="expected-output" style="margin-top:12px;"></div>
           </div>
@@ -179,80 +179,78 @@ export function renderPlayground() {
 
         <div style="display:flex;justify-content:space-between;margin-top:20px;">
           <button class="btn btn-secondary" id="prev-q-btn" disabled>← Previous</button>
-          <button class="btn btn-secondary" id="show-answer-btn"> Show Answer</button>
+          <button class="btn btn-secondary" id="show-answer-btn">👁 Show Answer</button>
           <button class="btn btn-primary" id="next-q-btn">Next →</button>
         </div>
 
-        <!-- Completion Bar (hidden until all done) -->
+        <!-- Completion -->
         <div id="completion-bar" style="display:none;margin-top:24px;">
           <div style="padding:24px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border:2px solid #66bb6a;border-radius:var(--radius-md);text-align:center;">
-            <div style="font-size:2.5rem;margin-bottom:8px;"></div>
+            <div style="font-size:2.5rem;margin-bottom:8px;">🎉</div>
             <div style="font-weight:900;font-size:1.1rem;color:#2e7d32;margin-bottom:4px;">All Questions Completed!</div>
-            <div style="font-size:0.82rem;color:#388e3c;font-weight:600;margin-bottom:20px;">Save your progress to practice again later.</div>
-            <div style="display:flex;gap:10px;max-width:450px;margin:0 auto;">
-              <input type="text" id="save-filename" class="pg-input" placeholder="Name your practice file..." value="" style="flex:1;">
-              <button class="btn btn-primary" id="save-complete-btn"> Save</button>
-            </div>
+            <div style="font-size:0.82rem;color:#388e3c;font-weight:600;margin-bottom:20px;">Great job! Generate a new set to keep practicing.</div>
+            <button class="btn btn-primary" id="new-set-btn">🔄 Generate New Questions</button>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Saved Sessions -->
-  <div id="saved-sessions" style="display:none;margin-top:24px;">
-    <div style="font-weight:800;font-size:0.85rem;color:var(--text-muted);letter-spacing:0.5px;margin-bottom:12px;"> SAVED SESSIONS</div>
-    <div id="saved-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <!-- ─── Free Query Mode ─── -->
+    <div id="freequery-mode" style="display:none;">
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <span style="font-size:1.3rem;">⚡</span>
+          <div>
+            <div style="font-weight:800;font-size:0.9rem;color:var(--text-primary);">Free Query Sandbox</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Write any SQL query against your loaded tables</div>
+          </div>
+        </div>
+        <div class="editor-chrome">
+          <div class="editor-chrome-bar">
+            <span class="editor-chrome-label">>_ FREE_QUERY <span style="opacity:.5;font-size:.7rem;margin-left:8px;">CTRL+ENTER</span></span>
+            <button class="btn btn-sm btn-accent" id="free-run-btn">▶ Run</button>
+          </div>
+          <textarea class="sql-editor" id="free-editor" placeholder="-- Write any SQL query here...
+-- Example: SELECT * FROM employees LIMIT 10;"></textarea>
+        </div>
+        <div id="free-result" style="margin-top:16px;"></div>
+      </div>
+    </div>
   </div>
-
 
   <!-- Schema Modal -->
-  <div id="schema-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div id="schema-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
     <div class="card" style="max-width:700px;width:90%;max-height:85vh;overflow-y:auto;margin:5vh auto;">
       <div class="card-header">
-        <span class="card-title"> Database Schema</span>
-        <button class="btn btn-sm btn-secondary" id="close-schema-btn"> Close</button>
+        <span class="card-title">📋 Database Schema</span>
+        <button class="btn btn-sm btn-secondary" id="close-schema-btn">✕ Close</button>
       </div>
       <div id="schema-content" style="margin-top:16px;"></div>
     </div>
   </div>`;
 }
 
+
+/* ══════════════════════════════════════
+   INIT
+   ══════════════════════════════════════ */
+
 export function initPlayground() {
-  const s = document.createElement('style');
-  s.textContent = `
-    .pg-label{font-size:.72rem;font-weight:800;color:var(--text-muted);display:block;margin-bottom:6px;letter-spacing:.5px;}
-    .pg-input{width:100%;padding:10px 14px;border:1.5px solid var(--border-color);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:.85rem;background:var(--bg-input);color:var(--text-primary);outline:none;box-sizing:border-box;transition:border .2s;}
-    .pg-input:focus{border-color:var(--accent-primary);}
-    .pg-textarea{width:100%;min-height:180px;padding:16px;border:1.5px dashed var(--border-color);border-radius:var(--radius-md);font-family:var(--font-mono);font-size:.82rem;background:var(--bg-input);color:var(--text-primary);resize:vertical;outline:none;box-sizing:border-box;transition:border .2s;}
-    .pg-textarea:focus{border-color:var(--accent-primary);border-style:solid;}
-  `;
-  document.head.appendChild(s);
+  injectStyles();
 
-  // header buttons
+  // Header buttons
   document.getElementById('schema-btn')?.addEventListener('click', showSchema);
-  document.getElementById('close-schema-btn')?.addEventListener('click', ()=>document.getElementById('schema-modal').style.display='none');
-  document.getElementById('reset-db-btn')?.addEventListener('click', async()=>{await sqlEngine.resetAndReload();uploadedTables=[];renderUploadedChips();alert('Database reset!');});
+  document.getElementById('close-schema-btn')?.addEventListener('click', () => {
+    document.getElementById('schema-modal').style.display = 'none';
+  });
+  document.getElementById('reset-all-btn')?.addEventListener('click', resetAll);
 
-  // collapsible sections
-  setupCollapse('prompt-header-toggle','prompt-body','prompt-chevron');
-  setupCollapse('upload-header-toggle','upload-body','upload-chevron');
-  setupCollapse('qa-header-toggle','qa-body','qa-chevron');
-
-  // prompt generator
-  document.getElementById('generate-prompt-btn')?.addEventListener('click', generatePrompt);
-  document.getElementById('copy-prompt-btn')?.addEventListener('click', copyPrompt);
-
-  // detect JOIN in topic
-  const topicInput = document.getElementById('prompt-topic');
-  topicInput?.addEventListener('input', () => {
-    const val = topicInput.value.toLowerCase();
-    const isJoin = /\bjoin\b|\bjoins\b|\bleft\b|\bright\b|\binner\b|\bouter\b|\bcross\b|\bnatural\b/.test(val);
-    const row = document.getElementById('join-dataset-row');
-    if(row) row.style.display = isJoin ? 'block' : 'none';
+  // Tab switching
+  document.querySelectorAll('.pg-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  // file upload
+  // File upload
   const zone = document.getElementById('pg-upload-zone');
   const fileInput = document.getElementById('pg-file-input');
   zone?.addEventListener('click', () => fileInput?.click());
@@ -261,191 +259,132 @@ export function initPlayground() {
   zone?.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); handleCSVFiles(e.dataTransfer.files); });
   fileInput?.addEventListener('change', e => handleCSVFiles(e.target.files));
 
-  // practice
-  document.getElementById('parse-qa-btn')?.addEventListener('click', parseQA);
-  document.getElementById('clear-qa-btn')?.addEventListener('click', ()=>{document.getElementById('qa-input').value='';document.getElementById('parse-feedback').innerHTML='';});
+  // Built-in dataset cards
+  document.querySelectorAll('.pg-dataset-card').forEach(card => {
+    card.addEventListener('click', () => loadBuiltinDataset(card.dataset.dataset));
+  });
+
+  // Mode tabs
+  document.getElementById('mode-practice-btn')?.addEventListener('click', () => switchMode('practice'));
+  document.getElementById('mode-freequery-btn')?.addEventListener('click', () => switchMode('freequery'));
+
+  // Difficulty selector
+  document.querySelectorAll('.diff-select-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.diff-select-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // Generate button
+  document.getElementById('generate-btn')?.addEventListener('click', handleGenerate);
+  document.getElementById('regenerate-btn')?.addEventListener('click', handleGenerate);
+  document.getElementById('new-set-btn')?.addEventListener('click', handleGenerate);
+
+  // Practice controls
   document.getElementById('submit-answer-btn')?.addEventListener('click', runPractice);
   document.getElementById('show-answer-btn')?.addEventListener('click', showAnswer);
-  document.getElementById('next-q-btn')?.addEventListener('click', ()=>navigateQ(1));
-  document.getElementById('prev-q-btn')?.addEventListener('click', ()=>navigateQ(-1));
+  document.getElementById('next-q-btn')?.addEventListener('click', () => navigateQ(1));
+  document.getElementById('prev-q-btn')?.addEventListener('click', () => navigateQ(-1));
   document.getElementById('hint-btn')?.addEventListener('click', showHint);
-  document.getElementById('exit-practice-btn')?.addEventListener('click', exitPractice);
-  document.getElementById('save-complete-btn')?.addEventListener('click', saveToFile);
 
-  document.addEventListener('keydown', e=>{if(e.ctrlKey&&e.key==='Enter') runPractice();});
+  // Free query
+  document.getElementById('free-run-btn')?.addEventListener('click', runFreeQuery);
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      if (activeMode === 'freequery') runFreeQuery();
+      else runPractice();
+    }
+  });
+
   setTimeout(setupSyntaxHighlighting, 100);
 
-  // Restore auto-saved session or show saved list
+  // Restore session if any
   restoreSession();
-  renderSavedSessions();
 }
 
-function setupCollapse(toggleId, bodyId, chevronId) {
-  const toggle = document.getElementById(toggleId);
-  const body = document.getElementById(bodyId);
-  const chevron = document.getElementById(chevronId);
-  if(!toggle||!body) return;
-  toggle.addEventListener('click', ()=>{
-    const open = body.style.display !== 'none';
-    body.style.display = open ? 'none' : 'block';
-    if(chevron) chevron.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
-  });
+
+/* ══════════════════════════════════════
+   STYLES
+   ══════════════════════════════════════ */
+
+function injectStyles() {
+  const s = document.createElement('style');
+  s.textContent = `
+    .pg-label{font-size:.72rem;font-weight:800;color:var(--text-muted);display:block;margin-bottom:6px;letter-spacing:.5px;}
+    .pg-input{width:100%;padding:10px 14px;border:1.5px solid var(--border-color);border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:.85rem;background:var(--bg-input);color:var(--text-primary);outline:none;box-sizing:border-box;transition:border .2s;}
+    .pg-input:focus{border-color:var(--accent-primary);}
+
+    .pg-tab-bar{display:flex;gap:0;border-bottom:2px solid var(--border-color);}
+    .pg-tab-btn{
+      flex:1;padding:12px 20px;background:none;border:none;border-bottom:3px solid transparent;
+      font-family:var(--font-mono);font-weight:800;font-size:0.82rem;color:var(--text-muted);
+      cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:0.5px;
+    }
+    .pg-tab-btn:hover{color:var(--accent-primary);background:var(--accent-pink-light);}
+    .pg-tab-btn.active{color:var(--accent-primary);border-bottom-color:var(--accent-primary);background:var(--accent-pink-light);}
+
+    .pg-dataset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+    .pg-dataset-card{
+      display:flex;align-items:center;gap:14px;padding:16px 20px;
+      background:var(--bg-card);border:1.5px solid var(--border-color);border-radius:var(--radius-md);
+      cursor:pointer;transition:all .2s;position:relative;
+    }
+    .pg-dataset-card:hover{border-color:var(--accent-primary);background:var(--bg-card-hover);transform:translateY(-2px);box-shadow:var(--shadow-md);}
+    .pg-dataset-card.loaded{border-color:var(--accent-green-border);background:var(--accent-green-light);}
+    .pg-dataset-icon{font-size:2rem;flex-shrink:0;}
+    .pg-dataset-info{flex:1;min-width:0;}
+    .pg-dataset-name{font-weight:800;font-size:0.9rem;color:var(--text-primary);}
+    .pg-dataset-desc{font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-top:2px;}
+    .pg-dataset-meta{font-size:0.68rem;color:var(--text-muted);margin-top:4px;font-weight:700;opacity:0.7;}
+    .pg-dataset-check{font-size:1.2rem;flex-shrink:0;}
+
+    @media(max-width:600px){
+      .pg-dataset-grid{grid-template-columns:1fr;}
+    }
+  `;
+  document.head.appendChild(s);
 }
 
-/* ── Prompt Generator ── */
-function isJoinTopic(topic) {
-  return /\bjoin\b|\bjoins\b|\bleft\b|\bright\b|\binner\b|\bouter\b|\bcross\b|\bnatural\b/i.test(topic);
+
+/* ══════════════════════════════════════
+   TAB & MODE SWITCHING
+   ══════════════════════════════════════ */
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.pg-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('tab-upload').style.display = tab === 'upload' ? 'block' : 'none';
+  document.getElementById('tab-builtin').style.display = tab === 'builtin' ? 'block' : 'none';
 }
 
-function generatePrompt() {
-  const count = document.getElementById('prompt-count')?.value||5;
-  const topic = document.getElementById('prompt-topic')?.value.trim();
-  const dataset = document.getElementById('prompt-dataset')?.value||'employees';
-  const joinMode = isJoinTopic(topic);
-  const dataset2 = joinMode ? (document.getElementById('prompt-dataset-2')?.value||'customers') : null;
+function switchMode(mode) {
+  activeMode = mode;
+  const practiceBtn = document.getElementById('mode-practice-btn');
+  const freeBtn = document.getElementById('mode-freequery-btn');
+  const practiceMode = document.getElementById('practice-mode');
+  const freeMode = document.getElementById('freequery-mode');
 
-  if(!topic) { alert('Please enter a topic first.'); return; }
-  if(joinMode && dataset === dataset2) { alert('Please pick two different datasets for JOINs.'); return; }
-
-  const datasetLabel = joinMode ? `${dataset} + ${dataset2}` : dataset;
-
-  // Schema definitions for each dataset
-  const SCHEMAS = {
-    employees: `   ${dataset === 'employees' ? dataset : 'employees'}:
-     - id (PRIMARY KEY)
-     - name
-     - department
-     - salary
-     - hire_date
-     - manager_id
-     - age
-     - city
-     - email
-     - status`,
-    customers: `   ${dataset === 'customers' ? dataset : 'customers'}:
-     - customer_id (PRIMARY KEY)
-     - customer_name
-     - employee_id (FOREIGN KEY → employees.id)
-     - city
-     - spent_amount`,
-    products: `   products:
-     - product_id (PRIMARY KEY)
-     - product_name
-     - category
-     - price
-     - stock_quantity
-     - supplier`,
-    orders: `   orders:
-     - order_id (PRIMARY KEY)
-     - customer_id (FOREIGN KEY → customers.customer_id)
-     - product_id (FOREIGN KEY → products.product_id)
-     - order_date
-     - quantity
-     - total_amount
-     - status`,
-    sales: `   sales:
-     - sale_id (PRIMARY KEY)
-     - product_id (FOREIGN KEY → products.product_id)
-     - sale_date
-     - quantity
-     - revenue
-     - region`
-  };
-
-  const ds1Schema = SCHEMAS[dataset] || SCHEMAS.employees;
-  const ds2Schema = joinMode ? (SCHEMAS[dataset2] || SCHEMAS.customers) : '';
-
-  const fileList = joinMode
-    ? `   - /mnt/data/${dataset}.csv\n   - /mnt/data/${dataset2}.csv`
-    : `   - /mnt/data/${dataset}.csv`;
-
-  const downloadLinks = joinMode
-    ? `   [Download ${dataset}.csv](sandbox:/mnt/data/${dataset}.csv)\n   [Download ${dataset2}.csv](sandbox:/mnt/data/${dataset2}.csv)`
-    : `   [Download ${dataset}.csv](sandbox:/mnt/data/${dataset}.csv)`;
-
-  const datasetCount = joinMode ? 'TWO' : 'ONE';
-  const datasetList = joinMode
-    ? `   - ${dataset} (minimum 20 rows)\n   - ${dataset2} (minimum 20 rows)`
-    : `   - ${dataset} (minimum 20 rows)`;
-
-  const joinRules = joinMode ? `
-3. Data rules:
-   - Use realistic names, cities, and values
-   - Include some NULL foreign key values for LEFT JOIN practice
-   - Ensure multiple related rows between tables` : `
-3. Data rules:
-   - Use realistic names, cities, and values
-   - Include variety in column values for interesting queries`;
-
-  const prompt = `You are an expert SQL instructor. Generate a practice set with the following specs:
-
-**Config:**
-- Number of questions: ${count}
-- Topic: ${topic}
-- Dataset${joinMode ? 's' : ''}: ${datasetLabel}
-- Difficulty: mix of Easy, Medium, and Hard (ordered easy to hard)
-
-═══════════════════════════════════════
-STEP 1 — DATASET${joinMode ? 'S' : ''} (MANDATORY - FILE OUTPUT)
-═══════════════════════════════════════
-You MUST generate REAL downloadable files using the python_user_visible tool.
-
-Requirements:
-1. Create ${datasetCount} dataset${joinMode ? 's' : ''}:
-${datasetList}
-
-2. Schema:
-${ds1Schema}
-${joinMode ? '\n' + ds2Schema : ''}
-${joinRules}
-
-4. Save files EXACTLY as:
-${fileList}
-
-5. After execution, provide download links in this format:
-${downloadLinks}
-
-DO NOT:
-- Print raw tables
-- Give only Python code without execution
-- Skip file generation
-
-═══════════════════════════════════════
-STEP 2 — QUESTIONS & ANSWERS
-═══════════════════════════════════════
-For each question, use EXACTLY this format:
-
----QUESTION---
-Difficulty: [Easy/Medium/Hard]
-Q: [Clear question text]
-Hint: [A helpful hint without giving away the answer]
-Answer:
-\`\`\`sql
-[The correct SQL query]
-\`\`\`
----END---
-
-Rules:
-- Questions MUST be solvable using the ${datasetLabel} dataset${joinMode ? 's' : ''} from Step 1${joinMode ? '\n- All questions MUST require JOINing the two tables' : ''}
-- Order from Easy to Hard
-- Each answer must be valid SQLite SQL
-- Include variety within the topic
-- Keep questions practical and real-world oriented`;
-
-  document.getElementById('prompt-output').textContent = prompt;
-  document.getElementById('prompt-output-wrap').style.display = 'block';
+  if (mode === 'practice') {
+    practiceBtn.className = 'btn btn-accent'; practiceBtn.style.flex = '1';
+    freeBtn.className = 'btn btn-secondary'; freeBtn.style.flex = '1';
+    practiceMode.style.display = 'block';
+    freeMode.style.display = 'none';
+  } else {
+    freeBtn.className = 'btn btn-accent'; freeBtn.style.flex = '1';
+    practiceBtn.className = 'btn btn-secondary'; practiceBtn.style.flex = '1';
+    practiceMode.style.display = 'none';
+    freeMode.style.display = 'block';
+  }
+  setTimeout(setupSyntaxHighlighting, 100);
 }
 
-function copyPrompt() {
-  const text = document.getElementById('prompt-output')?.textContent;
-  if(text) navigator.clipboard.writeText(text).then(()=>{
-    const b = document.getElementById('copy-prompt-btn');
-    b.textContent=' Copied!'; setTimeout(()=>b.textContent=' Copy',2000);
-  });
-}
 
-/* ── File Upload Handler ── */
-let uploadedTables = [];
+/* ══════════════════════════════════════
+   CSV UPLOAD HANDLER
+   ══════════════════════════════════════ */
 
 function parseCSVLine(line) {
   const result = [];
@@ -468,11 +407,23 @@ function cleanColumnName(name) {
 async function handleCSVFiles(files) {
   for (const file of files) {
     if (!file.name.endsWith('.csv')) continue;
+
+    // File size check (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showUploadError(`File "${file.name}" exceeds the 5MB limit.`);
+      continue;
+    }
+
     let text = await file.text();
-    // Remove BOM
     text = text.replace(/^\uFEFF/, '');
     const lines = text.split(/\r?\n/).filter(l => l.trim());
-    if (lines.length < 2) continue;
+    if (lines.length < 2) { showUploadError(`File "${file.name}" must have at least 2 rows (header + data).`); continue; }
+
+    // Row count check
+    if (lines.length > 10001) {
+      showUploadError(`File "${file.name}" exceeds the 10,000 row limit (${lines.length - 1} rows found).`);
+      continue;
+    }
 
     const rawHeaders = parseCSVLine(lines[0]);
     const headers = rawHeaders.map(cleanColumnName).filter(h => h);
@@ -497,12 +448,80 @@ async function handleCSVFiles(files) {
         const vals = headers.map(c => `'${String(row[c] || '').replace(/'/g, "''")}'`).join(', ');
         sqlEngine.exec(`INSERT INTO ${tableName} VALUES (${vals})`);
       }
-      uploadedTables.push({ name: tableName, columns: headers, rowCount: rows.length });
+      // Remove existing table with same name if re-uploading
+      uploadedTables = uploadedTables.filter(t => t.name !== tableName);
+      uploadedTables.push({ name: tableName, columns: headers, rowCount: rows.length, source: 'csv' });
       csvRawData[tableName] = text;
       renderUploadedChips();
-    } catch (e) { console.error('CSV import error:', e); }
+      showPracticeSection();
+    } catch (e) {
+      showUploadError(`Error importing "${file.name}": ${e.message}`);
+    }
   }
 }
+
+function showUploadError(msg) {
+  const zone = document.getElementById('pg-upload-zone');
+  if (!zone) return;
+  const existing = zone.parentElement.querySelector('.upload-error');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'upload-error feedback feedback-error';
+  el.style.marginTop = '12px';
+  el.innerHTML = `<span class="feedback-icon">❌</span><span>${escapeHtml(msg)}</span>`;
+  zone.parentElement.appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+}
+
+
+/* ══════════════════════════════════════
+   BUILT-IN DATASET LOADER
+   ══════════════════════════════════════ */
+
+async function loadBuiltinDataset(name) {
+  const card = document.getElementById(`ds-card-${name}`);
+  const check = document.getElementById(`ds-check-${name}`);
+
+  // Check if already loaded
+  if (uploadedTables.some(t => t.name === name)) {
+    // Unload it
+    sqlEngine.exec(`DROP TABLE IF EXISTS ${name}`);
+    uploadedTables = uploadedTables.filter(t => t.name !== name);
+    delete csvRawData[name];
+    card?.classList.remove('loaded');
+    if (check) check.style.display = 'none';
+    renderUploadedChips();
+    if (uploadedTables.length === 0) hidePracticeSection();
+    return;
+  }
+
+  // Show loading state
+  card?.classList.add('loaded');
+
+  try {
+    // The built-in datasets are loaded via sqlEngine.loadDataset which loads .sql files
+    await sqlEngine.loadDataset(name);
+    
+    // Get schema info
+    const info = sqlEngine.exec(`PRAGMA table_info(${name})`);
+    const count = sqlEngine.exec(`SELECT COUNT(*) FROM ${name}`);
+    const cols = info.success && info.results?.length ? info.results[0].values.map(r => r[1]) : [];
+    const rowCount = count.success && count.results?.length ? count.results[0].values[0][0] : 0;
+
+    uploadedTables.push({ name, columns: cols, rowCount, source: 'builtin' });
+    if (check) check.style.display = 'block';
+    renderUploadedChips();
+    showPracticeSection();
+  } catch (e) {
+    card?.classList.remove('loaded');
+    console.error('Failed to load built-in dataset:', e);
+  }
+}
+
+
+/* ══════════════════════════════════════
+   TABLE CHIPS
+   ══════════════════════════════════════ */
 
 function renderUploadedChips() {
   const container = document.getElementById('pg-table-chips');
@@ -511,91 +530,117 @@ function renderUploadedChips() {
   wrapper.style.display = uploadedTables.length > 0 ? 'block' : 'none';
   container.innerHTML = uploadedTables.map((t, i) => `
     <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--accent-green-light);border:1.5px solid var(--accent-green-border);border-radius:var(--radius-sm);font-size:0.8rem;font-weight:800;color:var(--accent-green-dark);">
-       ${t.name} <span style="opacity:0.6">(${t.rowCount} rows, ${t.columns.length} cols)</span>
-      <span style="color:var(--accent-red);cursor:pointer;" data-idx="${i}" class="remove-pg-table"></span>
+      🗄️ ${escapeHtml(t.name)} <span style="opacity:0.6">(${t.rowCount} rows, ${t.columns.length} cols)</span>
+      <span style="color:var(--accent-red);cursor:pointer;font-size:1rem;" data-idx="${i}" class="remove-pg-table">×</span>
     </span>
   `).join('');
   container.querySelectorAll('.remove-pg-table').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.dataset.idx);
-      sqlEngine.exec(`DROP TABLE IF EXISTS ${uploadedTables[idx].name}`);
+      const table = uploadedTables[idx];
+      sqlEngine.exec(`DROP TABLE IF EXISTS ${table.name}`);
+      // Update built-in card state
+      const card = document.getElementById(`ds-card-${table.name}`);
+      const check = document.getElementById(`ds-check-${table.name}`);
+      if (card) card.classList.remove('loaded');
+      if (check) check.style.display = 'none';
+      delete csvRawData[table.name];
       uploadedTables.splice(idx, 1);
       renderUploadedChips();
+      if (uploadedTables.length === 0) hidePracticeSection();
     });
   });
 }
 
-/* ── Q/A Parser ── */
-function parseQA() {
-  const raw = document.getElementById('qa-input')?.value||'';
-  const fb = document.getElementById('parse-feedback');
-  if(!raw.trim()){fb.innerHTML='<div class="feedback feedback-info"><span class="feedback-icon">ℹ</span><span>Paste Q&A from AI response first.</span></div>';return;}
 
-  if(uploadedTables.length === 0){
-    fb.innerHTML='<div class="feedback feedback-info"><span class="feedback-icon"></span><span>Upload your dataset CSV first (Step 2) so questions can run against it.</span></div>';
-    return;
+/* ══════════════════════════════════════
+   PRACTICE SECTION VISIBILITY
+   ══════════════════════════════════════ */
+
+function showPracticeSection() {
+  const section = document.getElementById('practice-section');
+  if (section) {
+    section.style.display = 'block';
+    section.style.animation = 'fadeIn 0.3s ease';
   }
-
-  parsedQuestions = [];
-  const blocks = raw.split(/---\s*QUESTION\s*---/i).slice(1);
-  for(const block of blocks){
-    const content = block.split(/---\s*END\s*---/i)[0]||'';
-    const diff = content.match(/Difficulty\s*:\s*(Easy|Medium|Hard)/i);
-    const q = content.match(/Q\s*:\s*(.+?)(?=\nHint\s*:|\nAnswer\s*:)/s);
-    const hint = content.match(/Hint\s*:\s*(.+?)(?=\nAnswer\s*:)/s);
-    // Try multiple patterns for the SQL answer
-    let ansText = null;
-    const ans1 = content.match(/```\s*sql\s*\n?([\s\S]*?)```/i);
-    const ans2 = content.match(/```\s*\n?(SELECT[\s\S]*?)```/i);
-    const ans3 = content.match(/```([\s\S]*?)```/);
-    const ans4 = content.match(/Answer\s*:\s*\n?\s*(SELECT[\s\S]*?)$/is);
-    if(ans1) ansText = ans1[1].trim();
-    else if(ans2) ansText = ans2[1].trim();
-    else if(ans3) ansText = ans3[1].trim();
-    else if(ans4) ansText = ans4[1].trim();
-    if(q) parsedQuestions.push({
-      difficulty:(diff?.[1]||'Easy').toLowerCase(),
-      question:q[1].trim(),
-      hint:hint?.[1]?.trim()||'No hint available.',
-      answer:ansText||'N/A'
-    });
-  }
-
-  const order={easy:0,medium:1,hard:2};
-  parsedQuestions.sort((a,b)=>(order[a.difficulty]||0)-(order[b.difficulty]||0));
-
-  if(!parsedQuestions.length){
-    fb.innerHTML='<div class="feedback feedback-error"><span class="feedback-icon"></span><span>Could not parse questions. Ensure AI used the ---QUESTION--- / ---END--- format.</span></div>';
-    return;
-  }
-
-  fb.innerHTML=`<div class="feedback feedback-success"><span class="feedback-icon"></span><span>Found ${parsedQuestions.length} questions! Starting practice on ${uploadedTables.map(t=>t.name).join(', ')}...</span></div>`;
-  currentQIdx=0;
-  saveSession();
-  setTimeout(()=>{
-    document.getElementById('practice-zone').style.display='block';
-    document.getElementById('practice-zone').scrollIntoView({behavior:'smooth',block:'start'});
-    renderQuestion();
-  },500);
 }
 
-/* ── Practice Mode ── */
+function hidePracticeSection() {
+  const section = document.getElementById('practice-section');
+  if (section) section.style.display = 'none';
+  const qZone = document.getElementById('questions-zone');
+  if (qZone) qZone.style.display = 'none';
+  generatedQuestions = [];
+  currentQIdx = 0;
+}
+
+
+/* ══════════════════════════════════════
+   QUESTION GENERATION
+   ══════════════════════════════════════ */
+
+function handleGenerate() {
+  if (uploadedTables.length === 0) {
+    alert('Please load at least one dataset first.');
+    return;
+  }
+
+  const diff = document.querySelector('.diff-select-btn.active')?.dataset.diff || 'mix';
+  const count = parseInt(document.getElementById('q-count-select')?.value || '10');
+
+  const tableNames = uploadedTables.map(t => t.name);
+  const result = generateQuestions(tableNames, { count, difficulty: diff });
+
+  if (result.questions.length === 0) {
+    alert('Could not generate questions. Try adding more data or a different difficulty.');
+    return;
+  }
+
+  generatedQuestions = result.questions;
+  currentQIdx = 0;
+
+  // Sort: easy → medium → hard
+  const diffOrder = { easy: 0, medium: 1, hard: 2 };
+  generatedQuestions.sort((a, b) => (diffOrder[a.difficulty] || 0) - (diffOrder[b.difficulty] || 0));
+
+  // Show questions zone
+  const qZone = document.getElementById('questions-zone');
+  if (qZone) {
+    qZone.style.display = 'block';
+    qZone.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  renderQuestion();
+  saveSession();
+  setTimeout(setupSyntaxHighlighting, 100);
+}
+
+
+/* ══════════════════════════════════════
+   PRACTICE MODE
+   ══════════════════════════════════════ */
+
 function renderQuestion() {
-  const q = parsedQuestions[currentQIdx]; if(!q) return;
-  document.getElementById('q-number').textContent=`Q${currentQIdx+1} / ${parsedQuestions.length}`;
-  document.getElementById('q-text').textContent=q.question;
-  document.getElementById('q-progress').textContent=`${currentQIdx+1} of ${parsedQuestions.length}`;
-  document.getElementById('q-progress-bar').style.width=`${((currentQIdx+1)/parsedQuestions.length)*100}%`;
-  const tag=document.getElementById('q-difficulty');
-  tag.textContent=q.difficulty.toUpperCase(); tag.className='diff-tag '+q.difficulty;
-  document.getElementById('practice-editor').value='';
-  document.getElementById('practice-result').innerHTML='<div style="text-align:center;padding:20px;color:var(--text-muted);"><div style="font-size:2rem;margin-bottom:8px;"></div><div style="font-weight:700;font-size:.85rem;">Run your answer to check results</div></div>';
-  document.getElementById('answer-reveal').style.display='none';
-  document.getElementById('q-hint-area').innerHTML='';
-  document.getElementById('prev-q-btn').disabled=currentQIdx===0;
-  document.getElementById('next-q-btn').disabled=false;
-  document.getElementById('next-q-btn').textContent=currentQIdx===parsedQuestions.length-1?' Finish':'Next →';
-  document.getElementById('completion-bar').style.display='none';
+  const q = generatedQuestions[currentQIdx];
+  if (!q) return;
+
+  document.getElementById('q-number').textContent = `Q${currentQIdx + 1} / ${generatedQuestions.length}`;
+  document.getElementById('q-text').textContent = q.question;
+  document.getElementById('q-progress').textContent = `${currentQIdx + 1} of ${generatedQuestions.length}`;
+  document.getElementById('q-progress-bar').style.width = `${((currentQIdx + 1) / generatedQuestions.length) * 100}%`;
+
+  const tag = document.getElementById('q-difficulty');
+  tag.textContent = q.difficulty.toUpperCase();
+  tag.className = 'diff-tag ' + q.difficulty;
+
+  document.getElementById('practice-editor').value = '';
+  document.getElementById('practice-result').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);"><div style="font-size:2rem;margin-bottom:8px;">⌨️</div><div style="font-weight:700;font-size:.85rem;">Run your answer to check results</div></div>';
+  document.getElementById('answer-reveal').style.display = 'none';
+  document.getElementById('q-hint-area').innerHTML = '';
+  document.getElementById('prev-q-btn').disabled = currentQIdx === 0;
+  document.getElementById('next-q-btn').disabled = false;
+  document.getElementById('next-q-btn').textContent = currentQIdx === generatedQuestions.length - 1 ? '🏁 Finish' : 'Next →';
+  document.getElementById('completion-bar').style.display = 'none';
 }
 
 function resultToString(result) {
@@ -606,94 +651,145 @@ function resultToString(result) {
 }
 
 function runPractice() {
-  const editor=document.getElementById('practice-editor');
-  const res=document.getElementById('practice-result');
-  if(!editor||!res) return;
-  const query=editor.value.trim();
-  if(!query){res.innerHTML='<div class="feedback feedback-info"><span class="feedback-icon">ℹ</span><span>Write your SQL answer first.</span></div>';return;}
-  const start=performance.now();
-  const userResult=sqlEngine.exec(query);
-  const elapsed=(performance.now()-start).toFixed(1);
-  if(!userResult.success){
-    res.innerHTML=`<div class="feedback feedback-error"><span class="feedback-icon"></span><span>${escapeHtml(userResult.error)}</span></div>`;
+  const editor = document.getElementById('practice-editor');
+  const res = document.getElementById('practice-result');
+  if (!editor || !res) return;
+  const query = editor.value.trim();
+  if (!query) { res.innerHTML = '<div class="feedback feedback-info"><span class="feedback-icon">ℹ</span><span>Write your SQL answer first.</span></div>'; return; }
+
+  const start = performance.now();
+  const userResult = sqlEngine.exec(query);
+  const elapsed = (performance.now() - start).toFixed(1);
+
+  if (!userResult.success) {
+    res.innerHTML = `<div class="feedback feedback-error"><span class="feedback-icon">❌</span><span>${escapeHtml(userResult.error)}</span></div>`;
     return;
   }
 
-  // Compare with expected output
-  const q = parsedQuestions[currentQIdx];
-  const expectedResult = q?.answer && q.answer !== 'N/A' ? sqlEngine.exec(q.answer) : null;
+  // Compare with expected
+  const q = generatedQuestions[currentQIdx];
+  const expectedResult = q?.answer ? sqlEngine.exec(q.answer) : null;
   const userStr = resultToString(userResult);
   const expectedStr = expectedResult ? resultToString(expectedResult) : null;
   const isMatch = expectedStr !== null && userStr === expectedStr;
 
   let matchBadge = '';
-  if(expectedStr !== null) {
+  if (expectedStr !== null) {
     matchBadge = isMatch
-      ? '<div style="padding:10px 16px;background:var(--accent-green-light);border:1.5px solid var(--accent-green-border);border-radius:var(--radius-sm);margin-bottom:12px;"><span style="font-weight:800;color:var(--accent-green-dark);font-size:.85rem;"> Correct! Your output matches the expected result.</span></div>'
-      : '<div style="padding:10px 16px;background:#fff0f0;border:1.5px solid #ffb3b3;border-radius:var(--radius-sm);margin-bottom:12px;"><span style="font-weight:800;color:#c0392b;font-size:.85rem;"> Output mismatch. Try again or check the expected answer.</span></div>';
+      ? '<div style="padding:10px 16px;background:var(--accent-green-light);border:1.5px solid var(--accent-green-border);border-radius:var(--radius-sm);margin-bottom:12px;"><span style="font-weight:800;color:var(--accent-green-dark);font-size:.85rem;">✅ Correct! Your output matches the expected result.</span></div>'
+      : '<div style="padding:10px 16px;background:#fff0f0;border:1.5px solid #ffb3b3;border-radius:var(--radius-sm);margin-bottom:12px;"><span style="font-weight:800;color:#c0392b;font-size:.85rem;">❌ Output mismatch. Try again or check the expected answer.</span></div>';
   }
 
-  res.innerHTML= matchBadge + `<div style="font-size:.75rem;color:var(--text-muted);margin-bottom:8px;font-weight:700;"> ${elapsed}ms</div>` + sqlEngine.renderResults(userResult.results);
+  res.innerHTML = matchBadge + `<div style="font-size:.75rem;color:var(--text-muted);margin-bottom:8px;font-weight:700;">⚡ ${elapsed}ms</div>` + sqlEngine.renderResults(userResult.results);
 }
 
 function showAnswer() {
-  const q=parsedQuestions[currentQIdx]; if(!q) return;
-  document.getElementById('expected-sql').textContent=q.answer;
-  // Run expected query and show its output
-  const expectedResult = q.answer && q.answer !== 'N/A' ? sqlEngine.exec(q.answer) : null;
+  const q = generatedQuestions[currentQIdx];
+  if (!q) return;
+  document.getElementById('expected-sql').textContent = q.answer;
+  const expectedResult = q.answer ? sqlEngine.exec(q.answer) : null;
   const outputDiv = document.getElementById('expected-output');
-  if(expectedResult && expectedResult.success && outputDiv) {
-    outputDiv.innerHTML = '<div style="font-weight:800;font-size:.72rem;color:var(--text-muted);letter-spacing:1px;margin-bottom:6px;"> EXPECTED OUTPUT</div>' + sqlEngine.renderResults(expectedResult.results);
-  } else if(outputDiv) {
+  if (expectedResult?.success && outputDiv) {
+    outputDiv.innerHTML = '<div style="font-weight:800;font-size:.72rem;color:var(--text-muted);letter-spacing:1px;margin-bottom:6px;">📊 EXPECTED OUTPUT</div>' + sqlEngine.renderResults(expectedResult.results);
+  } else if (outputDiv) {
     outputDiv.innerHTML = '';
   }
-  document.getElementById('answer-reveal').style.display='block';
+  document.getElementById('answer-reveal').style.display = 'block';
 }
 
 function showHint() {
-  const q=parsedQuestions[currentQIdx]; if(!q) return;
-  document.getElementById('q-hint-area').innerHTML=`<div class="hint-box visible" style="display:block;"> ${escapeHtml(q.hint)}</div>`;
+  const q = generatedQuestions[currentQIdx];
+  if (!q) return;
+  document.getElementById('q-hint-area').innerHTML = `<div class="hint-box visible" style="display:block;">💡 ${escapeHtml(q.hint)}</div>`;
 }
 
 function navigateQ(dir) {
-  const next=currentQIdx+dir;
-  if(next<0) return;
-  if(next>=parsedQuestions.length){
-    // Show completion bar
-    document.getElementById('completion-bar').style.display='block';
-    document.getElementById('completion-bar').scrollIntoView({behavior:'smooth',block:'center'});
-    document.getElementById('next-q-btn').disabled=true;
+  const next = currentQIdx + dir;
+  if (next < 0) return;
+  if (next >= generatedQuestions.length) {
+    document.getElementById('completion-bar').style.display = 'block';
+    document.getElementById('completion-bar').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('next-q-btn').disabled = true;
     return;
   }
-  currentQIdx=next;
+  currentQIdx = next;
   saveSession();
   renderQuestion();
 }
 
-function exitPractice() {
-  document.getElementById('practice-zone').style.display='none';
-  parsedQuestions=[]; currentQIdx=0; csvRawData={};
-  clearSession();
+
+/* ══════════════════════════════════════
+   FREE QUERY MODE
+   ══════════════════════════════════════ */
+
+function runFreeQuery() {
+  const editor = document.getElementById('free-editor');
+  const res = document.getElementById('free-result');
+  if (!editor || !res) return;
+  const query = editor.value.trim();
+  if (!query) { res.innerHTML = '<div class="feedback feedback-info"><span class="feedback-icon">ℹ</span><span>Write a query and click Run.</span></div>'; return; }
+
+  const start = performance.now();
+  const result = sqlEngine.exec(query);
+  const elapsed = (performance.now() - start).toFixed(1);
+
+  if (!result.success) {
+    res.innerHTML = `<div class="feedback feedback-error"><span class="feedback-icon">❌</span><span>${escapeHtml(result.error)}</span></div>`;
+    return;
+  }
+
+  res.innerHTML = `<div style="font-size:.75rem;color:var(--text-muted);margin-bottom:8px;font-weight:700;">⚡ ${elapsed}ms</div>` + sqlEngine.renderResults(result.results);
 }
 
-/* ── Session Persistence ── */
-const STORAGE_KEY = 'pg_practice_session';
-const SAVED_KEY = 'pg_saved_sessions';
+
+/* ══════════════════════════════════════
+   SCHEMA MODAL
+   ══════════════════════════════════════ */
+
+function showSchema() {
+  const modal = document.getElementById('schema-modal');
+  const content = document.getElementById('schema-content');
+  if (!modal || !content) return;
+  modal.style.display = 'flex';
+
+  if (uploadedTables.length === 0) {
+    content.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-muted);font-weight:700;">No tables loaded yet. Upload a CSV or select a built-in dataset.</div>';
+    return;
+  }
+
+  let html = '';
+  for (const table of uploadedTables) {
+    const result = sqlEngine.exec(`PRAGMA table_info(${table.name})`);
+    if (result.success && result.results?.length > 0) {
+      html += `<div style="margin-bottom:20px;">
+        <div style="font-weight:800;color:var(--accent-primary);margin-bottom:10px;font-size:.9rem;">🗄️ ${table.name.toUpperCase()} <span style="opacity:.5;font-weight:600;">(${table.rowCount} rows)</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${result.results[0].values.map(v => `<span class="clause-chip locked">${v[1]} <span style="opacity:.5">(${v[2]})</span></span>`).join('')}
+        </div>
+      </div>`;
+    }
+  }
+  content.innerHTML = html;
+}
+
+
+/* ══════════════════════════════════════
+   SESSION PERSISTENCE
+   ══════════════════════════════════════ */
+
+const STORAGE_KEY = 'pg_v2_session';
 
 function saveSession() {
   try {
     const data = {
-      questions: parsedQuestions,
+      questions: generatedQuestions,
       currentIdx: currentQIdx,
       csvData: csvRawData,
-      tables: uploadedTables
+      tables: uploadedTables,
+      mode: activeMode,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch(e) { console.warn('Could not save session:', e); }
-}
-
-function clearSession() {
-  localStorage.removeItem(STORAGE_KEY);
+  } catch (e) { console.warn('Could not save session:', e); }
 }
 
 function restoreSession() {
@@ -701,123 +797,78 @@ function restoreSession() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return;
     const data = JSON.parse(saved);
-    if (!data.questions || !data.questions.length) return;
-    loadSessionData(data);
-    const fb = document.getElementById('parse-feedback');
-    if(fb) fb.innerHTML = '<div class="feedback feedback-success"><span class="feedback-icon"></span><span>Session restored! Continuing from Q' + (currentQIdx+1) + '/' + parsedQuestions.length + '.</span></div>';
-  } catch(e) { console.warn('Could not restore session:', e); clearSession(); }
-}
+    if (!data.tables || !data.tables.length) return;
 
-function loadSessionData(data) {
-  if (data.csvData) {
-    for (const [tableName, csvText] of Object.entries(data.csvData)) {
-      let text = csvText.replace(/^\uFEFF/, '');
-      const lines = text.split(/\r?\n/).filter(l => l.trim());
-      if (lines.length < 2) continue;
-      const headers = parseCSVLine(lines[0]).map(cleanColumnName).filter(h => h);
-      if (!headers.length) continue;
-      sqlEngine.exec(`DROP TABLE IF EXISTS ${tableName}`);
-      sqlEngine.exec(`CREATE TABLE ${tableName} (${headers.map(c => `"${c}" TEXT`).join(', ')})`);
-      for (let i = 1; i < lines.length; i++) {
-        const vals = parseCSVLine(lines[i]);
-        if (vals.length === 0 || (vals.length === 1 && !vals[0])) continue;
-        const row = headers.map((h, idx) => `'${String(vals[idx] || '').replace(/'/g, "''")}' `).join(', ');
-        sqlEngine.exec(`INSERT INTO ${tableName} VALUES (${row})`);
+    // Reload CSV tables
+    if (data.csvData) {
+      for (const [tableName, csvText] of Object.entries(data.csvData)) {
+        let text = csvText.replace(/^\uFEFF/, '');
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) continue;
+        const headers = parseCSVLine(lines[0]).map(cleanColumnName).filter(h => h);
+        if (!headers.length) continue;
+        sqlEngine.exec(`DROP TABLE IF EXISTS ${tableName}`);
+        sqlEngine.exec(`CREATE TABLE ${tableName} (${headers.map(c => `"${c}" TEXT`).join(', ')})`);
+        for (let i = 1; i < lines.length; i++) {
+          const vals = parseCSVLine(lines[i]);
+          if (vals.length === 0 || (vals.length === 1 && !vals[0])) continue;
+          const row = headers.map((h, idx) => `'${String(vals[idx] || '').replace(/'/g, "''")}'`).join(', ');
+          sqlEngine.exec(`INSERT INTO ${tableName} VALUES (${row})`);
+        }
+      }
+      csvRawData = data.csvData;
+    }
+
+    // Reload built-in tables
+    for (const table of data.tables) {
+      if (table.source === 'builtin') {
+        // Don't await here, just mark as loaded. The datasets should already be loaded by main.js
+        const card = document.getElementById(`ds-card-${table.name}`);
+        const check = document.getElementById(`ds-check-${table.name}`);
+        if (card) card.classList.add('loaded');
+        if (check) check.style.display = 'block';
       }
     }
-    csvRawData = data.csvData;
-  }
-  uploadedTables = data.tables || [];
-  parsedQuestions = data.questions;
-  currentQIdx = data.currentIdx || 0;
-  renderUploadedChips();
-  document.getElementById('practice-zone').style.display = 'block';
-  renderQuestion();
-}
 
-/* ── Save to Website ── */
-function saveToFile() {
-  if (!parsedQuestions.length) { alert('Nothing to save.'); return; }
-  const nameInput = document.getElementById('save-filename');
-  const name = nameInput?.value.trim() || 'My SQL Practice';
-  const entry = {
-    id: Date.now(),
-    name: name,
-    savedAt: new Date().toISOString(),
-    questionCount: parsedQuestions.length,
-    questions: parsedQuestions,
-    currentIdx: 0,
-    csvData: csvRawData,
-    tables: uploadedTables
-  };
-  try {
-    const all = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
-    all.unshift(entry);
-    localStorage.setItem(SAVED_KEY, JSON.stringify(all));
-    renderSavedSessions();
-    const btn = document.getElementById('save-complete-btn');
-    if (btn) { btn.textContent = ' Saved!'; setTimeout(() => btn.textContent = ' Save', 2000); }
-  } catch(e) { alert('Could not save: ' + e.message); }
-}
+    uploadedTables = data.tables;
+    generatedQuestions = data.questions || [];
+    currentQIdx = data.currentIdx || 0;
 
-function renderSavedSessions() {
-  const container = document.getElementById('saved-list');
-  const wrapper = document.getElementById('saved-sessions');
-  if (!container || !wrapper) return;
-  const all = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
-  if (!all.length) { wrapper.style.display = 'none'; return; }
-  wrapper.style.display = 'block';
-  container.innerHTML = all.map((s, i) => {
-    const date = new Date(s.savedAt).toLocaleDateString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-    const tables = (s.tables || []).map(t => t.name).join(', ') || 'N/A';
-    return `<div class="card" style="cursor:pointer;padding:14px 18px;transition:border .2s,transform .15s;" data-idx="${i}" class="saved-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div style="display:flex;align-items:center;gap:12px;" class="saved-card-click" data-idx="${i}">
-          <span style="font-size:1.3rem;"></span>
-          <div>
-            <div style="font-weight:800;font-size:0.9rem;color:var(--text-primary);">${escapeHtml(s.name)}</div>
-            <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;margin-top:2px;">${s.questionCount || s.questions?.length || 0} questions · ${tables} · ${date}</div>
-          </div>
-        </div>
-        <button class="btn btn-sm btn-secondary delete-saved" data-idx="${i}" style="padding:4px 10px;"></button>
-      </div>
-    </div>`;
-  }).join('');
-  container.querySelectorAll('.saved-card-click').forEach(el => {
-    el.addEventListener('click', () => {
-      const idx = parseInt(el.dataset.idx);
-      const session = all[idx];
-      if (session) { loadSessionData(session); saveSession(); }
-    });
-  });
-  container.querySelectorAll('.delete-saved').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const idx = parseInt(btn.dataset.idx);
-      all.splice(idx, 1);
-      localStorage.setItem(SAVED_KEY, JSON.stringify(all));
-      renderSavedSessions();
-    });
-  });
-}
-/* ── Schema ── */
-function showSchema() {
-  const modal=document.getElementById('schema-modal');
-  const content=document.getElementById('schema-content');
-  if(!modal||!content) return;
-  modal.style.display='flex';
-  const tables=['employees','customers','products','orders','sales'];
-  let html='';
-  tables.forEach(table=>{
-    const result=sqlEngine.exec(`PRAGMA table_info(${table})`);
-    if(result.success&&result.results&&result.results.length>0){
-      html+=`<div style="margin-bottom:16px;">
-        <div style="font-weight:800;color:var(--accent-primary);margin-bottom:8px;font-size:.9rem;"> ${table.toUpperCase()}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${result.results[0].values.map(v=>`<span class="clause-chip locked">${v[1]} <span style="opacity:.5">(${v[2]})</span></span>`).join('')}
-        </div>
-      </div>`;
+    renderUploadedChips();
+    showPracticeSection();
+
+    if (data.mode) switchMode(data.mode);
+
+    if (generatedQuestions.length > 0) {
+      const qZone = document.getElementById('questions-zone');
+      if (qZone) qZone.style.display = 'block';
+      renderQuestion();
     }
-  });
-  content.innerHTML=html;
+  } catch (e) {
+    console.warn('Could not restore session:', e);
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+function resetAll() {
+  // Drop all loaded tables
+  for (const table of uploadedTables) {
+    sqlEngine.exec(`DROP TABLE IF EXISTS ${table.name}`);
+  }
+  uploadedTables = [];
+  csvRawData = {};
+  generatedQuestions = [];
+  currentQIdx = 0;
+  localStorage.removeItem(STORAGE_KEY);
+
+  // Reset UI
+  renderUploadedChips();
+  hidePracticeSection();
+
+  // Reset built-in cards
+  document.querySelectorAll('.pg-dataset-card').forEach(c => c.classList.remove('loaded'));
+  document.querySelectorAll('[id^="ds-check-"]').forEach(c => c.style.display = 'none');
+
+  // Reload all datasets for the engine
+  sqlEngine.resetAndReload();
 }
