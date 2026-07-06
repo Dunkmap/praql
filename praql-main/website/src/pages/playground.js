@@ -78,8 +78,9 @@ export function renderPlayground() {
 
     <!-- Loaded Tables Chips -->
     <div id="pg-loaded-tables" style="display:none;margin-top:18px;">
-      <div style="font-weight:800;font-size:.72rem;color:var(--accent-green-dark);letter-spacing:1px;margin-bottom:10px;">✅ LOADED TABLES</div>
+      <div style="font-weight:800;font-size:.72rem;color:var(--accent-green-dark);letter-spacing:1px;margin-bottom:10px;">✅ LOADED TABLES <span style="font-weight:600;opacity:0.6;">(click to preview)</span></div>
       <div id="pg-table-chips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      <div id="pg-table-preview" style="display:none;margin-top:14px;animation:fadeIn .3s ease;"></div>
     </div>
   </div>
 
@@ -110,7 +111,6 @@ export function renderPlayground() {
             <select id="q-count-select" class="pg-input" style="padding:7px 12px;">
               <option value="5">5 Questions</option>
               <option value="10" selected>10 Questions</option>
-              <option value="15">15 Questions</option>
             </select>
           </div>
           <div style="align-self:flex-end;">
@@ -523,33 +523,102 @@ async function loadBuiltinDataset(name) {
    TABLE CHIPS
    ══════════════════════════════════════ */
 
+let activePreviewTable = null;
+
 function renderUploadedChips() {
   const container = document.getElementById('pg-table-chips');
   const wrapper = document.getElementById('pg-loaded-tables');
   if (!container || !wrapper) return;
   wrapper.style.display = uploadedTables.length > 0 ? 'block' : 'none';
   container.innerHTML = uploadedTables.map((t, i) => `
-    <span style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:var(--accent-green-light);border:1.5px solid var(--accent-green-border);border-radius:var(--radius-sm);font-size:0.8rem;font-weight:800;color:var(--accent-green-dark);">
+    <span class="pg-table-chip ${activePreviewTable === t.name ? 'pg-chip-active' : ''}" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;background:${activePreviewTable === t.name ? 'var(--accent-pink-light)' : 'var(--accent-green-light)'};border:1.5px solid ${activePreviewTable === t.name ? 'var(--accent-primary)' : 'var(--accent-green-border)'};border-radius:var(--radius-sm);font-size:0.8rem;font-weight:800;color:${activePreviewTable === t.name ? 'var(--accent-primary)' : 'var(--accent-green-dark)'};cursor:pointer;transition:all .2s;" data-table="${t.name}">
       🗄️ ${escapeHtml(t.name)} <span style="opacity:0.6">(${t.rowCount} rows, ${t.columns.length} cols)</span>
       <span style="color:var(--accent-red);cursor:pointer;font-size:1rem;" data-idx="${i}" class="remove-pg-table">×</span>
     </span>
   `).join('');
+
+  // Click chip to toggle preview
+  container.querySelectorAll('.pg-table-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      if (e.target.classList.contains('remove-pg-table')) return; // Don't trigger preview on remove click
+      const tableName = chip.dataset.table;
+      if (activePreviewTable === tableName) {
+        activePreviewTable = null;
+        hideTablePreview();
+      } else {
+        activePreviewTable = tableName;
+        showTablePreview(tableName);
+      }
+      renderUploadedChips(); // Re-render to update active state
+    });
+  });
+
+  // Remove button
   container.querySelectorAll('.remove-pg-table').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const idx = parseInt(btn.dataset.idx);
       const table = uploadedTables[idx];
       sqlEngine.exec(`DROP TABLE IF EXISTS ${table.name}`);
-      // Update built-in card state
       const card = document.getElementById(`ds-card-${table.name}`);
       const check = document.getElementById(`ds-check-${table.name}`);
       if (card) card.classList.remove('loaded');
       if (check) check.style.display = 'none';
       delete csvRawData[table.name];
+      if (activePreviewTable === table.name) { activePreviewTable = null; hideTablePreview(); }
       uploadedTables.splice(idx, 1);
       renderUploadedChips();
       if (uploadedTables.length === 0) hidePracticeSection();
     });
   });
+
+  // Re-show preview if a table is active
+  if (activePreviewTable && uploadedTables.some(t => t.name === activePreviewTable)) {
+    showTablePreview(activePreviewTable);
+  }
+}
+
+function showTablePreview(tableName) {
+  const previewDiv = document.getElementById('pg-table-preview');
+  if (!previewDiv) return;
+
+  try {
+    const result = sqlEngine.exec(`SELECT * FROM ${tableName} LIMIT 5`);
+    if (!result.success || !result.results?.length) {
+      previewDiv.innerHTML = '<div style="padding:16px;color:var(--text-muted);text-align:center;font-weight:700;">No data available.</div>';
+      previewDiv.style.display = 'block';
+      return;
+    }
+
+    const cols = result.results[0].columns;
+    const rows = result.results[0].values;
+    const totalResult = sqlEngine.exec(`SELECT COUNT(*) FROM ${tableName}`);
+    const totalRows = totalResult.success && totalResult.results?.length ? totalResult.results[0].values[0][0] : '?';
+
+    previewDiv.innerHTML = `
+      <div class="card" style="padding:16px;border-color:var(--accent-primary);border-style:solid;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="font-weight:800;font-size:.8rem;color:var(--accent-primary);">👁️ ${escapeHtml(tableName.toUpperCase())} — Top 5 Rows</div>
+          <div style="font-size:.72rem;font-weight:700;color:var(--text-muted);">${totalRows} total rows · ${cols.length} columns</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+          ${cols.map(c => `<span style="padding:3px 10px;background:var(--accent-pink-light);color:var(--accent-primary);border-radius:4px;font-weight:700;font-size:0.72rem;border:1px solid var(--accent-primary);">${escapeHtml(c)}</span>`).join('')}
+        </div>
+        <div style="border:1.5px solid var(--border-color);border-radius:var(--radius-md);overflow:auto;max-height:220px;">
+          ${sqlEngine.renderResults(result.results)}
+        </div>
+      </div>
+    `;
+    previewDiv.style.display = 'block';
+  } catch (e) {
+    previewDiv.innerHTML = '<div style="padding:16px;color:var(--text-muted);text-align:center;font-weight:700;">Preview unavailable.</div>';
+    previewDiv.style.display = 'block';
+  }
+}
+
+function hideTablePreview() {
+  const previewDiv = document.getElementById('pg-table-preview');
+  if (previewDiv) previewDiv.style.display = 'none';
 }
 
 
