@@ -57,8 +57,8 @@ export function renderLanding() {
         </div>
         <div class="feature-card">
           <div class="feature-icon"></div>
-          <h3>LeetCode Prep</h3>
-          <p>Tackle technical interview questions with built-in test cases and validation.</p>
+          <h3>Interview Prep</h3>
+          <p>Sharpen your skills with interview-style SQL questions, built-in test cases, and instant validation.</p>
         </div>
       </div>
     </section>
