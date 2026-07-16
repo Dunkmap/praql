@@ -133,6 +133,11 @@ export function renderSqlens() {
       <p style="font-size:0.72rem;color:var(--text-muted);font-weight:600;line-height:1.8;margin:0;text-align:center;">
         <strong style="color:var(--text-secondary);">Disclaimer:</strong> SQLens is an independent educational tool designed for personal study. It is not affiliated with, endorsed by, or connected to any third‑party platform or service. End‑users are solely responsible for how they apply this tool in relation to external services. This product does not provide contest assistance, bypass access controls, or manipulate any third‑party platform.
       </p>
+      <div style="text-align:center;margin-top:14px;display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">
+        <a href="#/legal" style="font-size:0.75rem;color:var(--accent-primary);font-weight:700;text-decoration:none;border-bottom:1px dashed var(--accent-primary);padding-bottom:1px;">📋 Terms of Service</a>
+        <a href="#/legal" style="font-size:0.75rem;color:var(--accent-primary);font-weight:700;text-decoration:none;border-bottom:1px dashed var(--accent-primary);padding-bottom:1px;">🔒 Privacy Policy</a>
+        <a href="#/legal" style="font-size:0.75rem;color:var(--accent-primary);font-weight:700;text-decoration:none;border-bottom:1px dashed var(--accent-primary);padding-bottom:1px;">💳 Refund Policy</a>
+      </div>
     </div>
 
   </div>`;

@@ -61,6 +61,7 @@ router
   .on('/detective', () => loadPage('detective'))
   .on('/sqlens', () => loadPage('sqlens'))
   .on('/studio', () => loadPage('studio'))
-  .on('/progress', () => loadPage('progress'));
+  .on('/progress', () => loadPage('progress'))
+  .on('/legal', () => loadPage('legal', false));
 
 router.start();
