@@ -75,7 +75,7 @@ export function renderLanding() {
     <!-- Footer -->
     <footer class="site-footer">
       <div class="footer-inner">
-        <span>SQL Master v2.0 · Built with WebAssembly</span>
+        <span>SQL Master v2.0</span>
         <span>100% Client-Side · Zero Server Costs</span>
       </div>
     </footer>
