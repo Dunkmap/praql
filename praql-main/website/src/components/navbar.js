@@ -20,7 +20,7 @@ export function renderNavbar() {
       <a class="nav-link" href="#/playground"><span class="nav-link-inner"><span class="nav-icon"></span> Playground</span></a>
       <a class="nav-link" href="#/bugsquasher"><span class="nav-link-inner"><span class="nav-icon"></span> Bug Squasher</span></a>
       <a class="nav-link" href="#/detective"><span class="nav-link-inner"><span class="nav-icon"></span> Detective</span></a>
-      <a class="nav-link" href="#/leetcode"><span class="nav-link-inner"><span class="nav-icon"></span> SQLens</span></a>
+      <a class="nav-link" href="#/sqlens"><span class="nav-link-inner"><span class="nav-icon"></span> SQLens</span></a>
       <a class="nav-link" href="#/progress"><span class="nav-link-inner"><span class="nav-icon"></span> Progress</span></a>
       <label class="switch" id="theme-toggle-btn" title="Toggle theme">
         <input id="theme-checkbox" type="checkbox" />

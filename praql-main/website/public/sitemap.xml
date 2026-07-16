@@ -6,6 +6,6 @@
   <url><loc>https://yourdomain.com/#/playground</loc><priority>0.8</priority></url>
   <url><loc>https://yourdomain.com/#/bugsquasher</loc><priority>0.7</priority></url>
   <url><loc>https://yourdomain.com/#/detective</loc><priority>0.7</priority></url>
-  <url><loc>https://yourdomain.com/#/leetcode</loc><priority>0.7</priority></url>
+  <url><loc>https://yourdomain.com/#/sqlens</loc><priority>0.7</priority></url>
   <url><loc>https://yourdomain.com/#/progress</loc><priority>0.6</priority></url>
 </urlset>

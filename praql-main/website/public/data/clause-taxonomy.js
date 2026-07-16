@@ -410,7 +410,7 @@ function renderClauseSuggestionPanel(questionText, topic, expectedQuery) {
     html += `
       <div class="clause-suggestion-section">
         <div class="clause-section-label">
-          <span class="clause-section-icon"></span> LEETCODE (SQL GUESSER)
+          <span class="clause-section-icon"></span> SQL CLAUSE GUESSER
         </div>
         <div class="clause-chips-row">
           ${primaryDisplay.map(c => {

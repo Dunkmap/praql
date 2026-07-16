@@ -4,7 +4,7 @@ import { escapeHtml } from '../engine/sql-engine.js';
    SQLENS — Independent SQL Study Companion
    ================================================================ */
 
-export function renderLeetcode() {
+export function renderSqlens() {
   return `
   <div style="max-width:860px;margin:0 auto;">
 
@@ -138,6 +138,6 @@ export function renderLeetcode() {
   </div>`;
 }
 
-export function initLeetcode() {
+export function initSqlens() {
   // Nothing dynamic needed — it's a static educational page
 }

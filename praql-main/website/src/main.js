@@ -59,7 +59,7 @@ router
   .on('/playground', () => loadPage('playground'))
   .on('/bugsquasher', () => loadPage('bugsquasher'))
   .on('/detective', () => loadPage('detective'))
-  .on('/leetcode', () => loadPage('leetcode'))
+  .on('/sqlens', () => loadPage('sqlens'))
   .on('/studio', () => loadPage('studio'))
   .on('/progress', () => loadPage('progress'));
 
