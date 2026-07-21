@@ -16,9 +16,8 @@
   <meta name="keywords" content="SQL, learn SQL, practice SQL, SQL playground, SQL tutorial, WebAssembly, browser database">
   <meta name="author" content="SQL Master">
 
-  <!-- Security -->
-  <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+  <!-- Security — CSP, X-Content-Type-Options, X-Frame-Options are sent as real HTTP
+       headers (see vercel.json / nginx.conf); X-Frame-Options is not valid via <meta>. -->
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- Open Graph / Social Sharing -->

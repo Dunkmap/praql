@@ -15,9 +15,11 @@ export class Router {
 
   resolve() {
     const hash = window.location.hash.slice(1) || '/';
-    const route = this.routes[hash] || this.routes['/'];
+    // Strip query params before matching (e.g. "/checkout?price=pri_123" → "/checkout")
+    const path = hash.split('?')[0];
+    const route = this.routes[path] || this.routes['/'];
     if (route) {
-      this.currentRoute = hash;
+      this.currentRoute = path;
       route();
       this.updateActiveNav();
     }

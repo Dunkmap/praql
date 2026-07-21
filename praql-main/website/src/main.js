@@ -65,4 +65,23 @@ router
   .on('/legal', () => loadPage('legal', false))
   .on('/checkout', () => loadPage('checkout', false));
 
+// Handle path-based URLs (e.g. /checkout?price=pri_XXX) from external redirects.
+// The extension may redirect to a non-hash URL; Vercel rewrites it to index.html,
+// but the hash is empty so the router would show the landing page instead.
+// This converts path-based routes into hash-based ones before the router starts.
+(function redirectPathToHash() {
+  const path = window.location.pathname;
+  const search = window.location.search;
+  const hash = window.location.hash;
+
+  // Only redirect if there's a meaningful path (not just "/") AND no hash is set
+  if (path && path !== '/' && !hash) {
+    // Build the hash route: /checkout?price=X → #/checkout?price=X
+    const hashRoute = '#' + path + search;
+    // Replace the URL cleanly (no extra history entry)
+    window.history.replaceState(null, '', '/' + hashRoute);
+  }
+})();
+
 router.start();
+
