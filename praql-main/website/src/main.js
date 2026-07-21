@@ -62,6 +62,7 @@ router
   .on('/sqlens', () => loadPage('sqlens'))
   .on('/studio', () => loadPage('studio'))
   .on('/progress', () => loadPage('progress'))
-  .on('/legal', () => loadPage('legal', false));
+  .on('/legal', () => loadPage('legal', false))
+  .on('/checkout', () => loadPage('checkout', false));
 
 router.start();
