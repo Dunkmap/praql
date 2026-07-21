@@ -64,19 +64,12 @@ export function initCheckout() {
   console.log('[Checkout] search:', window.location.search);
   console.log('[Checkout] pathname:', window.location.pathname);
 
-  // --- 1. Read the priceId from hash params (+ fallback to location.search) ---
+  // --- 1. Read the priceId from hash params (+ fallback to location.search + default fallback) ---
   let priceId = getHashParams().get('price')
-             || new URLSearchParams(location.search).get('price');
+             || new URLSearchParams(location.search).get('price')
+             || 'pri_01ky1xwc21295dbedpt82ppvqb';
 
   console.log('[Checkout] Extracted priceId:', priceId);
-
-  if (!priceId) {
-    showError(
-      'No price specified',
-      'Add <code>?price=pri_XXXX</code> to the URL to start a checkout.'
-    );
-    return;
-  }
 
   updateStatus('Loading payment system…');
 
@@ -117,9 +110,9 @@ export function initCheckout() {
       updateStatus('Opening checkout…');
 
       Paddle.Checkout.open({
-        items: [{ priceId, quantity: 1 }],
+        items: [{ priceId: priceId, quantity: 1 }],
         settings: {
-          successUrl: window.location.origin + '/#/sqlens',
+          successUrl: window.location.origin + '/sqlens',
           displayMode: 'overlay',
         },
       });
