@@ -27,7 +27,7 @@ export function initCheckout() {
   script.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
   script.onload = () => {
     /* global Paddle */
-    Paddle.Initialize({ token: 'pdl_live_apikey_01kxnasz7r' });
+    Paddle.Initialize({ token: 'live_4ff9963e1d96ee6ed3187d8bba4' });
 
     const priceId = new URLSearchParams(location.search).get('price');
     if (priceId) {
