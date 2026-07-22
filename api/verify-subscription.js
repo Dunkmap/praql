@@ -7,13 +7,6 @@
  * Usage:
  *   GET  /api/verify-subscription?email=user@example.com
  *   POST /api/verify-subscription  { "email": "user@example.com" }
- *
- * Environment variables required:
- *   PADDLE_API_KEY — Paddle Billing API key
- *                    (from Paddle → Developer Tools → Authentication → API Keys)
- *
- * Response:
- *   { "active": true|false, "subscription": { ... } | null }
  */
 
 const PADDLE_API_BASE = 'https://api.paddle.com';
@@ -66,7 +59,7 @@ function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   setCorsHeaders(res);
 
   if (req.method === 'OPTIONS') {
@@ -78,10 +71,14 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const apiKey = process.env.PADDLE_API_KEY;
+  const apiKey = process.env.PADDLE_API_KEY || process.env.VITE_PADDLE_API_KEY;
   if (!apiKey) {
-    console.error('[VerifySub] PADDLE_API_KEY is not set');
-    return res.status(500).json({ error: 'Server misconfigured' });
+    console.error('[VerifySub] PADDLE_API_KEY is not set in Environment Variables');
+    return res.status(500).json({
+      error: 'Server misconfigured: PADDLE_API_KEY environment variable is missing on Vercel.',
+      active: false,
+      plan: 'free'
+    });
   }
 
   let email;
@@ -95,12 +92,14 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({
       error: 'Missing required parameter: email',
       usage: 'GET /api/verify-subscription?email=user@example.com',
+      active: false,
+      plan: 'free'
     });
   }
 
   email = email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return res.status(400).json({ error: 'Invalid email format' });
+    return res.status(400).json({ error: 'Invalid email format', active: false, plan: 'free' });
   }
 
   try {
@@ -109,7 +108,7 @@ module.exports = async function handler(req, res) {
 
     if (!customer) {
       console.log(`[VerifySub] No customer found for ${email}`);
-      return res.status(200).json({ active: false, subscription: null });
+      return res.status(200).json({ active: false, plan: 'free', subscription: null });
     }
 
     console.log(`[VerifySub] Customer found ${customer.id} for ${email}`);
@@ -120,6 +119,7 @@ module.exports = async function handler(req, res) {
       console.log(`[VerifySub] ✓ Active subscription ${subscription.id} for ${email}`);
       return res.status(200).json({
         active: true,
+        plan: 'pro',
         subscription: {
           id: subscription.id,
           status: subscription.status,
@@ -136,6 +136,7 @@ module.exports = async function handler(req, res) {
       console.log(`[VerifySub] ✓ Completed transaction ${transaction.id} for ${email}`);
       return res.status(200).json({
         active: true,
+        plan: 'pro',
         subscription: {
           id: transaction.id,
           status: 'lifetime',
@@ -145,12 +146,14 @@ module.exports = async function handler(req, res) {
     }
 
     console.log(`[VerifySub] ✗ No active subscription or transaction for ${email}`);
-    return res.status(200).json({ active: false, subscription: null });
+    return res.status(200).json({ active: false, plan: 'free', subscription: null });
   } catch (err) {
     console.error(`[VerifySub] Paddle API error for ${email}:`, err.message);
     return res.status(502).json({
       error: 'Failed to verify subscription',
       detail: err.message,
+      active: false,
+      plan: 'free'
     });
   }
-};
+}
