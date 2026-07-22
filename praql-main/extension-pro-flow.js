@@ -1,304 +1,212 @@
 /**
  * ══════════════════════════════════════════════════════════════════════
- *  EXTENSION PRO FLOW — Transaction-ID Activation (No Server)
+ *  EXTENSION PRO FLOW — Email Backend Verification & Txn Code Support
  * ══════════════════════════════════════════════════════════════════════
  *
  *  This file is NOT deployed. It contains the code snippets to integrate
- *  into your Chrome extension for the "Activate Pro" flow.
+ *  into your Chrome extension.
  *
- *  How it works:
- *    1. User completes Paddle checkout on the website
- *    2. checkout.completed event fires → website shows the transaction ID
- *    3. User copies the transaction ID and pastes it into the extension
- *    4. Extension stores it in chrome.storage.local → Pro unlocked
- *
- *  No server, no API keys, no secrets, no attack surface.
+ *  How it works with your Backend:
+ *    1. User enters their email in the extension popup.
+ *    2. Extension calls your backend API: GET /api/verify-subscription?email=...
+ *    3. Backend queries Paddle API to confirm active subscription/payment.
+ *    4. Extension stores Pro status in chrome.storage.local.
  *
  *  Storage keys used (chrome.storage.local):
- *    - sqlens_pro           : boolean — Whether Pro is active
- *    - sqlens_pro_txn       : string  — Transaction ID (activation code)
- *    - sqlens_pro_activated : number  — Timestamp of activation
+ *    - sqlens_pro         : boolean — Whether Pro is active
+ *    - sqlens_pro_email   : string  — User email
+ *    - sqlens_pro_checked : number   — Timestamp of last API verification
  * ══════════════════════════════════════════════════════════════════════
  */
 
+// ─── Configuration ───────────────────────────────────────────────────
+
+// Replace with your domain when live (e.g. 'https://yourdomain.com/api/verify-subscription')
+const VERIFY_API_URL = 'https://praql.vercel.app/api/verify-subscription';
+
+const RECHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // Re-verify with backend every 24 hours
+
 // =====================================================================
-//  SNIPPET 1: Activate Pro with a transaction ID (popup.js or utils)
+//  SNIPPET 1: Verify Purchase by Email (Calls Backend API)
 // =====================================================================
 
 /**
- * Activate Pro using a Paddle transaction ID.
- * Validates the format and stores it.
+ * Verify subscription using backend API.
  *
- * @param {string} code — The transaction ID from the checkout success page
- * @returns {Promise<boolean>} — true if activation succeeded
+ * @param {string} email — The email used during Paddle checkout
+ * @returns {Promise<{active: boolean, subscription: object|null}>}
  */
-async function activatePro(code) {
-  if (!code || typeof code !== 'string') {
-    throw new Error('Please enter your activation code');
+async function verifyPurchaseByEmail(email) {
+  if (!email || !email.includes('@')) {
+    throw new Error('Please enter a valid email address');
   }
 
-  const trimmed = code.trim();
+  const url = `${VERIFY_API_URL}?email=${encodeURIComponent(email.trim().toLowerCase())}`;
 
-  // Paddle transaction IDs start with "txn_"
-  if (!trimmed.startsWith('txn_')) {
-    throw new Error(
-      'Invalid activation code. It should start with "txn_" — ' +
-      'copy the full code from the checkout success page.'
-    );
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Verification failed (${response.status})`);
   }
 
-  // Store in chrome.storage.local
+  const result = await response.json();
+
+  // Persist in chrome.storage.local
   await chrome.storage.local.set({
-    sqlens_pro: true,
-    sqlens_pro_txn: trimmed,
-    sqlens_pro_activated: Date.now(),
+    sqlens_pro: result.active,
+    sqlens_pro_email: email.trim().toLowerCase(),
+    sqlens_pro_checked: Date.now(),
+    sqlens_pro_sub: result.subscription || null,
   });
 
-  console.log('[SQLens] ✓ Pro activated with transaction:', trimmed);
-  return true;
+  return result;
 }
 
 // =====================================================================
-//  SNIPPET 2: Check Pro status (use anywhere in the extension)
+//  SNIPPET 2: Check Cached Pro Status (Background & Auto-recheck)
 // =====================================================================
 
 /**
- * Check if Pro is active.
+ * Checks cached status. If > 24 hours old, re-verifies in background.
  *
  * @returns {Promise<boolean>}
  */
-async function isProActive() {
-  const data = await chrome.storage.local.get(['sqlens_pro']);
-  return data.sqlens_pro === true;
-}
-
-/**
- * Get full Pro details (status + transaction ID + activation date).
- *
- * @returns {Promise<{active: boolean, txn: string|null, activatedAt: number|null}>}
- */
-async function getProDetails() {
+async function checkProStatus() {
   const data = await chrome.storage.local.get([
     'sqlens_pro',
-    'sqlens_pro_txn',
-    'sqlens_pro_activated',
+    'sqlens_pro_email',
+    'sqlens_pro_checked',
   ]);
 
-  return {
-    active: data.sqlens_pro === true,
-    txn: data.sqlens_pro_txn || null,
-    activatedAt: data.sqlens_pro_activated || null,
-  };
-}
+  const isPro = data.sqlens_pro === true;
+  const lastChecked = data.sqlens_pro_checked || 0;
+  const isStale = Date.now() - lastChecked > RECHECK_INTERVAL_MS;
 
-// =====================================================================
-//  SNIPPET 3: Deactivate / reset Pro (for debugging or support)
-// =====================================================================
-
-async function deactivatePro() {
-  await chrome.storage.local.remove([
-    'sqlens_pro',
-    'sqlens_pro_txn',
-    'sqlens_pro_activated',
-  ]);
-  console.log('[SQLens] Pro deactivated');
-}
-
-// =====================================================================
-//  SNIPPET 4: Auto-check on extension open (popup.js DOMContentLoaded)
-// =====================================================================
-
-/**
- * Call this when the popup opens. It checks Pro status and updates
- * the UI accordingly (show Pro badge or show activation form).
- */
-async function initProUI() {
-  const pro = await getProDetails();
-
-  const badge = document.getElementById('pro-badge');
-  const activateSection = document.getElementById('activate-section');
-
-  if (pro.active) {
-    // Show Pro badge, hide activation form
-    if (badge) badge.style.display = 'block';
-    if (activateSection) activateSection.style.display = 'none';
-  } else {
-    // Show activation form, hide badge
-    if (badge) badge.style.display = 'none';
-    if (activateSection) activateSection.style.display = 'block';
+  // Background silent re-check if stale
+  if (data.sqlens_pro_email && isStale) {
+    verifyPurchaseByEmail(data.sqlens_pro_email).catch((err) => {
+      console.warn('[SQLens] Silent re-verification failed:', err.message);
+    });
   }
+
+  return isPro;
 }
 
 // =====================================================================
-//  SNIPPET 5: Popup HTML — "Activate Pro" UI
+//  SNIPPET 3: Auto-recheck on Extension Installed / Updated
 // =====================================================================
 
-/**
- * Add this HTML block to your popup.html inside the main container.
- */
-const ACTIVATE_PRO_HTML = `
-<!-- Pro Status Badge (shown when activated) -->
+chrome.runtime.onInstalled?.addListener(async () => {
+  const data = await chrome.storage.local.get(['sqlens_pro_email']);
+  if (data.sqlens_pro_email) {
+    try {
+      await verifyPurchaseByEmail(data.sqlens_pro_email);
+      console.log('[SQLens] Pro status re-verified on update');
+    } catch (err) {
+      console.warn('[SQLens] Re-verification failed:', err.message);
+    }
+  }
+});
+
+// =====================================================================
+//  SNIPPET 4: Popup UI HTML
+// =====================================================================
+
+const VERIFY_PURCHASE_HTML = `
+<!-- Pro Badge -->
 <div id="pro-badge" style="display:none; margin-bottom:16px; padding:12px 16px;
   background:linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
   border-radius:10px; text-align:center;">
   <div style="font-size:1.2rem; font-weight:900; color:#78350f;">
-    ⭐ PRO ACTIVE
+    ⭐ PRO UNLOCKED
   </div>
-  <div id="pro-txn-display" style="font-size:0.7rem; color:#92400e;
-    margin-top:4px; font-weight:600; font-family:monospace;"></div>
+  <div id="pro-email-display" style="font-size:0.75rem; color:#92400e;
+    margin-top:4px; font-weight:600;"></div>
 </div>
 
-<!-- Activate Pro Section -->
-<div id="activate-section" style="margin-top:16px; padding:16px;
+<!-- Email Verification Form -->
+<div id="verify-section" style="margin-top:16px; padding:16px;
   background:#1a1a2e; border-radius:10px; border:1px solid #2d2d44;">
 
   <div style="font-weight:800; font-size:0.85rem; color:#e2e8f0;
-    margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-    🔑 Activate Pro
+    margin-bottom:12px;">
+    🔑 Verify Purchase
   </div>
 
-  <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:12px;
-    line-height:1.6;">
-    Paste the activation code from your checkout confirmation to unlock Pro features.
+  <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:12px; line-height:1.6;">
+    Enter the email address used during Paddle checkout.
   </div>
 
-  <input id="activate-code-input" type="text"
-    placeholder="txn_01abc123..."
+  <input id="verify-email-input" type="email" placeholder="your@email.com"
     style="width:100%; padding:10px 12px; border-radius:8px;
       border:1px solid #374151; background:#0f172a; color:#e2e8f0;
-      font-size:0.85rem; font-weight:600; font-family:monospace;
-      outline:none; box-sizing:border-box; margin-bottom:10px;"
-  />
+      font-size:0.85rem; outline:none; box-sizing:border-box; margin-bottom:10px;" />
 
-  <button id="activate-pro-btn"
-    style="width:100%; padding:10px 16px; border-radius:8px;
-      border:none; background:linear-gradient(135deg, #8b5cf6, #6d28d9);
-      color:white; font-size:0.85rem; font-weight:800; cursor:pointer;
-      transition:all 0.2s ease;">
-    Activate Pro
+  <button id="verify-purchase-btn"
+    style="width:100%; padding:10px 16px; border-radius:8px; border:none;
+      background:linear-gradient(135deg, #8b5cf6, #6d28d9); color:white;
+      font-size:0.85rem; font-weight:800; cursor:pointer;">
+    Verify Email
   </button>
 
-  <div id="activate-status" style="display:none; margin-top:10px;
-    padding:10px 12px; border-radius:8px; font-size:0.78rem;
-    font-weight:600; line-height:1.5;"></div>
-
-  <div style="margin-top:12px; text-align:center;">
-    <a href="https://praql.vercel.app/#/checkout" target="_blank"
-      style="font-size:0.73rem; color:#8b5cf6; text-decoration:none;
-        font-weight:700; border-bottom:1px dashed #8b5cf6;">
-      Don't have a code? Purchase here →
-    </a>
-  </div>
+  <div id="verify-status" style="display:none; margin-top:10px; padding:10px;
+    border-radius:8px; font-size:0.78rem; font-weight:600;"></div>
 </div>
 `;
 
 // =====================================================================
-//  SNIPPET 6: Popup JS — Wire up the Activate Pro UI
+//  SNIPPET 5: Popup JS Initializer
 // =====================================================================
 
-/**
- * Call this in your popup.js after DOMContentLoaded.
- */
-async function initActivateProUI() {
+async function initVerifyUI() {
   const badge = document.getElementById('pro-badge');
-  const section = document.getElementById('activate-section');
-  const codeInput = document.getElementById('activate-code-input');
-  const activateBtn = document.getElementById('activate-pro-btn');
-  const statusEl = document.getElementById('activate-status');
-  const txnDisplay = document.getElementById('pro-txn-display');
+  const section = document.getElementById('verify-section');
+  const emailInput = document.getElementById('verify-email-input');
+  const btn = document.getElementById('verify-purchase-btn');
+  const statusEl = document.getElementById('verify-status');
+  const emailDisplay = document.getElementById('pro-email-display');
 
-  if (!activateBtn) return;
+  if (!btn) return;
 
-  // ── Load existing state ──
-  const pro = await getProDetails();
-  if (pro.active) {
+  const stored = await chrome.storage.local.get(['sqlens_pro', 'sqlens_pro_email']);
+  if (stored.sqlens_pro) {
     if (badge) badge.style.display = 'block';
     if (section) section.style.display = 'none';
-    if (txnDisplay) txnDisplay.textContent = pro.txn;
+    if (emailDisplay) emailDisplay.textContent = stored.sqlens_pro_email;
   }
 
-  // ── Activate button click ──
-  activateBtn.addEventListener('click', async () => {
-    const code = codeInput.value.trim();
-    if (!code) {
-      showActivateStatus('Please paste your activation code', 'error');
-      return;
-    }
+  btn.addEventListener('click', async () => {
+    const email = emailInput.value.trim();
+    if (!email) return;
 
-    activateBtn.disabled = true;
-    activateBtn.textContent = 'Activating…';
+    btn.disabled = true;
+    btn.textContent = 'Verifying…';
 
     try {
-      await activatePro(code);
-      showActivateStatus('✅ Pro activated! Enjoy your Pro features.', 'success');
-
-      // Update UI
-      if (badge) {
-        badge.style.display = 'block';
-        if (txnDisplay) txnDisplay.textContent = code;
-      }
-      if (section) {
-        setTimeout(() => { section.style.display = 'none'; }, 1500);
+      const res = await verifyPurchaseByEmail(email);
+      if (res.active) {
+        if (badge) badge.style.display = 'block';
+        if (section) section.style.display = 'none';
+        if (emailDisplay) emailDisplay.textContent = email;
+      } else {
+        if (statusEl) {
+          statusEl.style.display = 'block';
+          statusEl.style.background = '#2d0a0a';
+          statusEl.style.color = '#fca5a5';
+          statusEl.textContent = '❌ No active purchase found for this email.';
+        }
       }
     } catch (err) {
-      showActivateStatus(`⚠️ ${err.message}`, 'error');
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.background = '#2d0a0a';
+        statusEl.style.color = '#fca5a5';
+        statusEl.textContent = `⚠️ ${err.message}`;
+      }
     } finally {
-      activateBtn.disabled = false;
-      activateBtn.textContent = 'Activate Pro';
+      btn.disabled = false;
+      btn.textContent = 'Verify Email';
     }
   });
-
-  // Enter key submits
-  codeInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') activateBtn.click();
-  });
-
-  function showActivateStatus(message, type) {
-    if (!statusEl) return;
-    statusEl.style.display = 'block';
-    statusEl.textContent = message;
-
-    const colors = {
-      success: { bg: '#052e16', border: '#166534', color: '#4ade80' },
-      error:   { bg: '#2d0a0a', border: '#7f1d1d', color: '#fca5a5' },
-    };
-    const c = colors[type] || colors.error;
-    statusEl.style.background = c.bg;
-    statusEl.style.border = `1px solid ${c.border}`;
-    statusEl.style.color = c.color;
-  }
 }
-
-// =====================================================================
-//  SNIPPET 7: Feature-gate helper
-// =====================================================================
-
-/**
- * Gate a Pro-only feature.
- *
- * Usage:
- *   if (await requirePro()) {
- *     // run Pro-only code
- *   }
- */
-async function requirePro() {
-  const active = await isProActive();
-  if (!active) {
-    console.log('[SQLens] This feature requires Pro activation');
-  }
-  return active;
-}
-
-// =====================================================================
-//  INTEGRATION CHECKLIST
-// =====================================================================
-//
-//  □ Copy activatePro() + isProActive() + getProDetails() into popup.js
-//  □ Add ACTIVATE_PRO_HTML to your popup.html
-//  □ Call initActivateProUI() in your popup.js DOMContentLoaded handler
-//  □ Use requirePro() or isProActive() to gate Pro features
-//  □ Ensure "storage" permission is in manifest.json
-//
-//  NO server needed. NO API keys. NO environment variables.
-//
-// =====================================================================

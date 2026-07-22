@@ -215,7 +215,7 @@ export function initCheckout() {
       // Support optional Paddle Retain (pwCustomer) if logged-in customer ID (ctm_...) is present
       const customerId = getHashParams().get('customer') || new URLSearchParams(location.search).get('customer');
       const initOptions = {
-        token: 'live_4ff9963e1d96ee6ed3187d8bba4',
+        token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'live_4ff9963e1d96ee6ed3187d8bba4',
         eventCallback: (event) => {
           console.log('[Checkout] Paddle event:', event.name, event.data);
 
