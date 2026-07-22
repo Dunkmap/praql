@@ -91,13 +91,13 @@ export function initCheckout() {
       // mismatch, unapproved domain, etc.) ASYNCHRONOUSLY via this callback —
       // Checkout.open() does not throw for them. Without this, failures are silent
       // and the overlay simply never appears.
-      Paddle.Initialize({
+      // Support optional Paddle Retain (pwCustomer) if logged-in customer ID (ctm_...) is present
+      const customerId = getHashParams().get('customer') || new URLSearchParams(location.search).get('customer');
+      const initOptions = {
         token: 'live_4ff9963e1d96ee6ed3187d8bba4',
         eventCallback: (event) => {
           console.log('[Checkout] Paddle event:', event.name, event.data);
           if (event.name === 'checkout.error') {
-            // Log the full payload — the actionable detail (e.g. "price_id must be a
-            // valid paddle id") comes back on the network response, not always on event.data.
             console.error('[Checkout] checkout.error payload:', JSON.stringify(event.data));
             const detail =
               (event.data && (event.data.error || event.data.message)) ||
@@ -105,7 +105,13 @@ export function initCheckout() {
             showError('Could not open checkout', detail);
           }
         },
-      });
+      };
+
+      if (customerId && customerId.startsWith('ctm_')) {
+        initOptions.pwCustomer = { id: customerId };
+      }
+
+      Paddle.Initialize(initOptions);
 
       updateStatus('Opening checkout…');
 
