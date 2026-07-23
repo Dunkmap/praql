@@ -22,6 +22,7 @@ export function renderLegal() {
         <a href="#legal-tos" class="btn btn-secondary" style="padding:10px 22px;font-size:0.82rem;font-weight:700;text-decoration:none;border-radius:8px;">📋 Terms of Service</a>
         <a href="#legal-privacy" class="btn btn-secondary" style="padding:10px 22px;font-size:0.82rem;font-weight:700;text-decoration:none;border-radius:8px;">🔒 Privacy Policy</a>
         <a href="#legal-refund" class="btn btn-secondary" style="padding:10px 22px;font-size:0.82rem;font-weight:700;text-decoration:none;border-radius:8px;">💳 Refund Policy</a>
+        <a href="#legal-contact" class="btn btn-secondary" style="padding:10px 22px;font-size:0.82rem;font-weight:700;text-decoration:none;border-radius:8px;">✉️ Contact Us</a>
       </div>
     </div>
 
@@ -117,7 +118,7 @@ export function renderLegal() {
 
         <div style="margin-bottom:20px;">
           <div style="font-weight:800;color:var(--text-primary);margin-bottom:6px;font-size:0.88rem;">6. Your Rights</div>
-          <p style="margin:0;">You have the right to access, correct, or delete your personal data. You may also opt out of marketing communications at any time. To exercise these rights, please contact us at our support email.</p>
+          <p style="margin:0;">You have the right to access, correct, or delete your personal data. You may also opt out of marketing communications at any time. To exercise these rights, please contact us at <a href="mailto:mapdunk@gmail.com" style="color:var(--accent-primary);font-weight:800;">mapdunk@gmail.com</a>.</p>
         </div>
 
         <div>
@@ -160,7 +161,7 @@ export function renderLegal() {
 
         <div style="margin-bottom:20px;">
           <div style="font-weight:800;color:var(--text-primary);margin-bottom:6px;font-size:0.88rem;">3. Billing Errors</div>
-          <p style="margin:0;">If you believe you were charged in error (e.g., duplicate charge), please contact our support team within 7 days of the charge. We will investigate and resolve legitimate billing errors on a case-by-case basis.</p>
+          <p style="margin:0;">If you believe you were charged in error (e.g., duplicate charge), please contact us at <a href="mailto:mapdunk@gmail.com" style="color:var(--accent-primary);font-weight:800;">mapdunk@gmail.com</a> within 7 days of the charge. We will investigate and resolve legitimate billing errors on a case-by-case basis.</p>
         </div>
 
         <div style="margin-bottom:20px;">
@@ -170,7 +171,7 @@ export function renderLegal() {
 
         <div>
           <div style="font-weight:800;color:var(--text-primary);margin-bottom:6px;font-size:0.88rem;">5. Contact Us</div>
-          <p style="margin:0;">If you have any questions about our refund policy, please reach out to our support team. We are happy to assist with any billing-related inquiries.</p>
+          <p style="margin:0;">If you have any questions about our refund policy, please reach out to us at <a href="mailto:mapdunk@gmail.com" style="color:var(--accent-primary);font-weight:800;">mapdunk@gmail.com</a>. We are happy to assist with any billing-related inquiries.</p>
         </div>
 
       </div>
@@ -181,6 +182,21 @@ export function renderLegal() {
       <div style="font-weight:800;font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1.5px;">Key Takeaway</div>
       <div style="font-size:0.92rem;font-weight:700;color:var(--text-primary);line-height:1.8;max-width:520px;margin:0 auto;">
         No refunds on subscriptions · Cancel anytime before renewal · Your data is protected · Use responsibly for personal study
+      </div>
+    </div>
+
+    <!-- Contact Section -->
+    <div id="legal-contact" class="card" style="margin-bottom:40px;padding:36px;border-left:4px solid var(--accent-primary);">
+      <div class="card-title" style="margin-bottom:20px;font-size:1rem;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.4rem;">✉️</span> Contact Us
+      </div>
+      <div style="font-size:0.84rem;color:var(--text-secondary);font-weight:600;line-height:1.9;">
+        <p style="margin:0 0 16px 0;">For any questions about these policies, billing inquiries, or support requests, please contact us:</p>
+        <div style="background:var(--bg-tertiary);border:1.5px solid var(--border-color);border-radius:10px;padding:20px 24px;text-align:center;">
+          <div style="font-weight:900;font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;">Email</div>
+          <a href="mailto:mapdunk@gmail.com" style="font-size:1.1rem;font-weight:800;color:var(--accent-primary);text-decoration:none;">mapdunk@gmail.com</a>
+          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;margin-top:8px;">We typically respond within 24 hours.</div>
+        </div>
       </div>
     </div>
 
