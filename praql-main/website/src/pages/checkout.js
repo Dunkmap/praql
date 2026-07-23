@@ -231,7 +231,7 @@ export function initCheckout() {
       // Use sandbox or live client-side token
       const clientToken = isSandbox
         ? (import.meta.env.VITE_PADDLE_SANDBOX_CLIENT_TOKEN || 'test_0a5f7f5f0ea9e0422064c94341b')
-        : (import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'live_4ff9963e1d96ee6ed3187d8bba4');
+        : (import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'live_eba654ffba57e4b5b4f8c60f015');
 
       const initOptions = {
         token: clientToken,
