@@ -212,10 +212,29 @@ export function initCheckout() {
   script.onload = () => {
     try {
       /* global Paddle */
+
+      // ── Detect sandbox mode via URL param (?sandbox=1) or env var ──
+      const isSandbox = getHashParams().get('sandbox') === '1'
+                     || new URLSearchParams(location.search).get('sandbox') === '1'
+                     || (import.meta.env.VITE_PADDLE_ENV || '').toLowerCase() === 'sandbox';
+
+      if (isSandbox) {
+        console.log('[Checkout] 🧪 Running in SANDBOX mode');
+        Paddle.Environment.set('sandbox');
+      } else {
+        console.log('[Checkout] 💳 Running in LIVE mode');
+      }
+
       // Support optional Paddle Retain (pwCustomer) if logged-in customer ID (ctm_...) is present
       const customerId = getHashParams().get('customer') || new URLSearchParams(location.search).get('customer');
+
+      // Use sandbox or live client-side token
+      const clientToken = isSandbox
+        ? (import.meta.env.VITE_PADDLE_SANDBOX_CLIENT_TOKEN || 'test_0a5f7f5f0ea9e0422064c94341b')
+        : (import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'live_4ff9963e1d96ee6ed3187d8bba4');
+
       const initOptions = {
-        token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 'live_4ff9963e1d96ee6ed3187d8bba4',
+        token: clientToken,
         eventCallback: (event) => {
           console.log('[Checkout] Paddle event:', event.name, event.data);
 

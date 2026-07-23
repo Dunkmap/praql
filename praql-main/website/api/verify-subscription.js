@@ -9,10 +9,17 @@
  *   POST /api/verify-subscription  { "email": "user@example.com" }
  */
 
-const PADDLE_API_BASE = 'https://api.paddle.com';
+/* ── Paddle API base — auto-detect sandbox vs. live from the API key prefix ── */
+function getPaddleApiBase(apiKey) {
+  if (apiKey && apiKey.startsWith('pdl_sdbx_')) {
+    return 'https://sandbox-api.paddle.com';
+  }
+  return 'https://api.paddle.com';
+}
 
 async function paddleGet(path, apiKey) {
-  const url = `${PADDLE_API_BASE}${path}`;
+  const base = getPaddleApiBase(apiKey);
+  const url = `${base}${path}`;
   const res = await fetch(url, {
     method: 'GET',
     headers: {
@@ -75,11 +82,13 @@ export default async function handler(req, res) {
   if (!apiKey) {
     console.error('[VerifySub] PADDLE_API_KEY is not set in Environment Variables');
     return res.status(500).json({
-      error: 'Server misconfigured: PADDLE_API_KEY environment variable is missing on Vercel.',
+      error: 'Server misconfigured: PADDLE_API_KEY environment variable is missing. Set it in Vercel dashboard.',
       active: false,
       plan: 'free'
     });
   }
+  const isSandbox = apiKey.startsWith('pdl_sdbx_');
+  console.log(`[VerifySub] Using ${isSandbox ? 'SANDBOX' : 'LIVE'} Paddle API`);
 
   let email;
   if (req.method === 'GET') {
